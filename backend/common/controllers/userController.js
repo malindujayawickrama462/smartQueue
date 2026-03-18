@@ -10,6 +10,45 @@ export async function RegisterUser(req,res) {
                 msg:"required al fields"
             });
         }
+
+        // Bootstrap rule:
+        // - Only the first-ever admin can be created publicly.
+        // - After an admin exists, creating ANY user requires an admin JWT.
+        const adminCount = await User.countDocuments({ role: "admin" });
+        const requestedRole = role || "admin";
+
+        if (adminCount > 0) {
+            const token = req.header("Authorization")?.replace("Bearer ", "");
+            if (!token) {
+                return res.status(403).json({
+                    msg: "Registration is disabled. Admin must create users."
+                });
+            }
+
+            let decoded;
+            try {
+                decoded = jwt.verify(token, process.env.SECRET_KEY);
+            } catch (err) {
+                return res.status(401).json({
+                    msg: err.name === "TokenExpiredError" ? "Token has expired" : "Invalid token"
+                });
+            }
+
+            const requester = await User.findById(decoded.id);
+            if (!requester || requester.role !== "admin") {
+                return res.status(403).json({
+                    msg: "Access denied. Admin role required."
+                });
+            }
+        } else {
+            // No admins exist yet: only allow creating the first admin publicly
+            if (requestedRole !== "admin") {
+                return res.status(400).json({
+                    msg: "First user must be an admin."
+                });
+            }
+        }
+
         const userExists = await User.findOne({email});
         if(userExists){
             return res.status(400).json({
@@ -22,7 +61,7 @@ export async function RegisterUser(req,res) {
             name,
             email,
             password:hasashedPassword,
-            role : role 
+            role : requestedRole
         })
         if(user){
             res.status(201).json({

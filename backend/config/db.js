@@ -8,6 +8,6 @@ import mongoose from "mongoose"
         console.log("MongoDB Connected");
     } catch (err) {
         console.error("MongoDB connection failed",err.message);
-        process.exit(); 
+        process.exit();
     }
  };
