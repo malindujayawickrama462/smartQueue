@@ -7,6 +7,8 @@ import Me from './pages/Me';
 import ChangePassword from './pages/ChangePassword';
 import Profile from './pages/Profile';
 import UserHome from './pages/UserHome';
+import AdminCanteens from './pages/AdminCanteens';
+import StudentCanteens from './pages/StudentCanteens';
 import { RequireAdmin, RequireAuth } from './routes/Guards';
 
 export default function App() {
@@ -21,10 +23,12 @@ export default function App() {
         <Route path="/home" element={<UserHome />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/canteens" element={<StudentCanteens />} />
       </Route>
 
       <Route element={<RequireAdmin />}>
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/canteens" element={<AdminCanteens />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

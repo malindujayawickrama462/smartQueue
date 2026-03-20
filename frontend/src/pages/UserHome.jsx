@@ -50,6 +50,18 @@ export default function UserHome() {
             </div>
           </div>
         </Card>
+
+        <Card title="Select Canteen" subtitle="Browse and select from available canteens">
+          <p className="text-sm text-slate-300 mb-4">
+            View available canteens and select one to join the queue.
+          </p>
+          <button
+            onClick={() => nav('/canteens')}
+            className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400 transition"
+          >
+            Browse Canteens
+          </button>
+        </Card>
       </div>
     </div>
   );
