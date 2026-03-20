@@ -26,6 +26,7 @@ export default function AdminCanteens({ isSidebarMode = false }) {
   const [addingStaff, setAddingStaff] = useState(false);
   const [assigningManager, setAssigningManager] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
+  const [canteenDetails, setCanteenDetails] = useState({});
 
   const sortedCanteens = useMemo(() => {
     const arr = Array.isArray(canteens) ? [...canteens] : [];
@@ -38,7 +39,23 @@ export default function AdminCanteens({ isSidebarMode = false }) {
     setLoadingCanteens(true);
     try {
       const data = await getAllCanteens();
-      setCanteens(data.canteens || []);
+      const canteenList = data.canteens || [];
+      setCanteens(canteenList);
+
+      // Load staff for each canteen
+      const details = {};
+      for (const canteen of canteenList) {
+        try {
+          const staffData = await getCanteenStaff(canteen.canteenID);
+          details[canteen._id] = {
+            manager: staffData.manager,
+            staff: staffData.staff || [],
+          };
+        } catch (err) {
+          details[canteen._id] = { manager: null, staff: [] };
+        }
+      }
+      setCanteenDetails(details);
     } catch (err) {
       setError(err.message || 'Failed to load canteens');
       setCanteens([]);
@@ -296,37 +313,76 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                 {sortedCanteens.length === 0 ? (
                   <p className="text-sm text-slate-400">No canteens found.</p>
                 ) : (
-                  sortedCanteens.map((c) => (
-                    <div
-                      key={c._id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-950/20 px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{c.name}</div>
-                        <div className="text-xs text-slate-400 truncate">{c.location}</div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <div className="text-xs font-mono text-slate-300">{c.canteenID}</div>
-                          <div className="text-xs text-sky-400">Capacity: {c.capacity}</div>
+                  sortedCanteens.map((c) => {
+                    const details = canteenDetails[c._id] || { manager: null, staff: [] };
+                    return (
+                      <div
+                        key={c._id}
+                        className="rounded-lg border border-slate-700 bg-slate-950/40 p-4 space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-bold text-slate-100">{c.name}</div>
+                            <div className="text-xs text-slate-400">{c.location}</div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              Capacity: <span className="text-slate-300">{c.capacity}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-mono text-slate-400">{c.canteenID}</div>
+                          </div>
                         </div>
-                        <button
-                          className="text-xs rounded-md border border-slate-700 bg-slate-900/50 px-2 py-1 text-slate-200 hover:border-emerald-500 hover:text-emerald-300 transition"
-                          onClick={() => onSelectCanteen(c)}
-                          title="Manage staff"
-                        >
-                          Manage
-                        </button>
-                        <button
-                          className="text-xs rounded-md border border-slate-700 bg-slate-900/50 px-2 py-1 text-slate-200 hover:border-red-500 hover:text-red-300 transition"
-                          onClick={() => onDelete(c)}
-                          title="Delete canteen"
-                        >
-                          Delete
-                        </button>
+
+                        <div className="border-t border-slate-700 pt-3 space-y-2">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300 mb-1">Manager</p>
+                            {details.manager ? (
+                              <p className="text-xs text-emerald-400">✓ Assigned</p>
+                            ) : (
+                              <p className="text-xs text-slate-500">Not assigned</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300 mb-1">
+                              Staff ({details.staff.length})
+                            </p>
+                            {details.staff.length > 0 ? (
+                              <div className="space-y-1">
+                                {details.staff.slice(0, 2).map((s) => (
+                                  <p key={s._id} className="text-xs text-slate-400">
+                                    • {s.staff.name} <span className="text-slate-500">({s.role})</span>
+                                  </p>
+                                ))}
+                                {details.staff.length > 2 && (
+                                  <p className="text-xs text-slate-500">+{details.staff.length - 2} more</p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-500">No staff assigned</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            className="flex-1 text-xs rounded-md border border-slate-600 bg-slate-900/50 px-2 py-1.5 text-slate-200 hover:border-emerald-500 hover:text-emerald-300 transition"
+                            onClick={() => onSelectCanteen(c)}
+                            title="Manage staff"
+                          >
+                            Manage
+                          </button>
+                          <button
+                            className="flex-1 text-xs rounded-md border border-slate-600 bg-slate-900/50 px-2 py-1.5 text-slate-200 hover:border-red-500 hover:text-red-300 transition"
+                            onClick={() => onDelete(c)}
+                            title="Delete canteen"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

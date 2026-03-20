@@ -1,15 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getAllUsers, deleteUser, register } from '../auth/authApi';
+import { getAllCanteens, addStaffToCanteen } from '../api/canteenApi';
 import { Card } from './Card';
 
 export default function StaffManagement() {
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [canteens, setCanteens] = useState([]);
+  const [loadingCanteens, setLoadingCanteens] = useState(true);
   const [error, setError] = useState('');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedCanteen, setSelectedCanteen] = useState('');
+  const [staffRole, setStaffRole] = useState('staff');
   const [creating, setCreating] = useState(false);
   const [createdMsg, setCreatedMsg] = useState('');
 
@@ -33,6 +38,19 @@ export default function StaffManagement() {
     }
   };
 
+  const loadCanteens = async () => {
+    setLoadingCanteens(true);
+    try {
+      const data = await getAllCanteens();
+      setCanteens(data.canteens || []);
+    } catch (err) {
+      // Silent fail for canteens
+      setCanteens([]);
+    } finally {
+      setLoadingCanteens(false);
+    }
+  };
+
   const onDelete = async (u) => {
     const ok = confirm(`Delete staff ${u.name} (${u.email})?`);
     if (!ok) return;
@@ -47,6 +65,7 @@ export default function StaffManagement() {
 
   useEffect(() => {
     loadUsers();
+    loadCanteens();
   }, []);
 
   const onCreateUser = async (e) => {
@@ -60,10 +79,24 @@ export default function StaffManagement() {
     setCreating(true);
     try {
       const data = await register({ name, email, password, role: 'staff' }, { auth: true });
-      setCreatedMsg(`Created ${data.userID} (${data.role})`);
+
+      // Assign to canteen if selected
+      if (selectedCanteen) {
+        try {
+          await addStaffToCanteen(selectedCanteen, data._id || data.userID, staffRole);
+          setCreatedMsg(`Created ${data.userID} (${data.role}) and assigned to canteen`);
+        } catch (canteenErr) {
+          setCreatedMsg(`Created ${data.userID} but failed to assign to canteen: ${canteenErr.message}`);
+        }
+      } else {
+        setCreatedMsg(`Created ${data.userID} (${data.role})`);
+      }
+
       setName('');
       setEmail('');
       setPassword('');
+      setSelectedCanteen('');
+      setStaffRole('staff');
       await loadUsers();
     } catch (err) {
       setError(err.message || 'Failed to create staff');
@@ -120,6 +153,46 @@ export default function StaffManagement() {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-200" htmlFor="canteen">
+                Assign to Canteen (Optional)
+              </label>
+              <select
+                id="canteen"
+                value={selectedCanteen}
+                onChange={(e) => setSelectedCanteen(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
+              >
+                <option value="">No canteen assignment</option>
+                {loadingCanteens ? (
+                  <option value="">Loading canteens...</option>
+                ) : (
+                  canteens.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name} ({c.location})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+
+            {selectedCanteen && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-200" htmlFor="role">
+                  Staff Role in Canteen
+                </label>
+                <select
+                  id="role"
+                  value={staffRole}
+                  onChange={(e) => setStaffRole(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="supervisor">Supervisor</option>
+                </select>
+              </div>
+            )}
 
             {error && (
               <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-md px-3 py-2">
