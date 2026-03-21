@@ -33,9 +33,9 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     timeSlot: {
-        startTime: { type: String, required: true }, // e.g., "12:10"
-        endTime: { type: String, required: true },   // e.g., "12:15"
-        date: { type: String, required: true }       // e.g., "2026-03-21"
+        startTime: { type: String, required: false }, // Assigned after Staff accepts
+        endTime: { type: String, required: false },
+        date: { type: String, required: false }
     },
     paymentStatus: {
         type: String,
@@ -49,8 +49,8 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Preparing', 'Ready', 'Completed', 'Late'],
-        default: 'Pending'
+        enum: ['Requested', 'Pending', 'Preparing', 'Ready', 'Completed', 'Late', 'Rejected'],
+        default: 'Requested'
     },
     pickupTime: {
         type: Date

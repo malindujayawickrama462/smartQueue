@@ -31,6 +31,38 @@ export default function StudentOrder() {
         fetchMenu();
     }, [canteenId]);
 
+    // Setup polling for order confirmation
+    useEffect(() => {
+        let interval;
+        if (orderSuccess && orderSuccess.status === 'Requested') {
+            interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/order/${orderSuccess._id}`, {
+                        headers: { "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.order.status !== 'Requested') {
+                            setOrderSuccess(data.order);
+                            // Generate invoice if accepted and paid via card
+                            if (data.order.status === 'Pending' && data.order.paymentMethod === 'Card') {
+                                try {
+                                    const invData = await generateInvoice(data.order._id);
+                                    setInvoiceId(invData.invoice._id);
+                                } catch (invErr) {
+                                    console.error("Invoice generation failed on poll:", invErr);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+        return () => clearInterval(interval);
+    }, [orderSuccess]);
+
     const addToCart = (item) => {
         if (!item.availability) return;
         setCart(prev => {
@@ -61,14 +93,8 @@ export default function StudentOrder() {
             };
             const data = await placeOrder(orderData);
 
-            if (paymentMethod === 'Card') {
-                try {
-                    const invData = await generateInvoice(data.order._id);
-                    setInvoiceId(invData.invoice._id);
-                } catch (invErr) {
-                    console.error("Invoice generation failed:", invErr);
-                }
-            }
+            // We do NOT instantly generate the invoice here for Cards because the order is 'Requested'.
+            // The polling interval will catch the staff's acceptance and generate the invoice.
 
             setOrderSuccess(data.order);
             setCart([]);
@@ -90,15 +116,59 @@ export default function StudentOrder() {
     };
 
     if (orderSuccess) {
+        if (orderSuccess.status === 'Requested') {
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-10 flex items-center justify-center animate-in fade-in duration-500">
+                    <div className="max-w-md w-full space-y-6">
+                        <Card title="Order Sent to Kitchen 📨" subtitle="Awaiting Staff Confirmation">
+                            <div className="text-center py-10 space-y-6">
+                                <div className="w-20 h-20 mx-auto rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/30 animate-pulse">
+                                    <svg className="w-10 h-10 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <p className="text-sm font-bold text-slate-400 leading-relaxed">
+                                    Please wait. The kitchen staff is reviewing your menu items to ensure availability.
+                                </p>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
+        if (orderSuccess.status === 'Rejected') {
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-10 flex items-center justify-center animate-in zoom-in duration-300">
+                    <div className="max-w-md w-full space-y-6">
+                        <Card title="Order Rejected ❌" subtitle="Kitchen could not fulfill your request.">
+                            <div className="text-center py-8 space-y-6">
+                                <div className="w-20 h-20 mx-auto rounded-full bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/30">
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </div>
+                                <p className="text-sm font-medium text-slate-300">
+                                    Unfortunately, the kitchen is busy or out of stock. If you paid by card, your purchase will be automatically refunded.
+                                </p>
+                                <button
+                                    onClick={() => setOrderSuccess(null)}
+                                    className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-700 transition"
+                                >
+                                    Return to Menu
+                                </button>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+            );
+        }
+
         return (
-            <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-10 flex items-center justify-center">
+            <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-10 flex items-center justify-center animate-in zoom-in duration-500">
                 <div className="max-w-md w-full space-y-6">
-                    <Card title="Order Confirmed! ✅" subtitle="Your token has been generated.">
+                    <Card title="Order Confirmed! ✅" subtitle="Your token has been assigned.">
                         <div className="text-center py-8 space-y-6">
                             <div className="space-y-2">
                                 <p className="text-sm text-slate-400 uppercase tracking-widest font-bold">Your Token</p>
                                 <p className="text-6xl font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                    {orderSuccess.orderID}
+                                    {orderSuccess.orderToken || orderSuccess.orderID}
                                 </p>
                             </div>
 

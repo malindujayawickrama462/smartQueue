@@ -62,4 +62,4 @@ canteenSchema.pre("save", async function () {
 });
 
 const Canteen = mongoose.model("canteen", canteenSchema);
-export default Canteen;
+export default Canteen; 

@@ -63,9 +63,13 @@ export default function KitchenDashboard() {
         }
     };
 
-    // Group orders by time slot
-    const groupedOrders = orders.reduce((acc, order) => {
-        const slotKey = `${order.timeSlot.startTime} - ${order.timeSlot.endTime}`;
+    // Separate orders into Requests vs Active
+    const pendingRequests = orders.filter(o => o.status === 'Requested');
+    const activeOrders = orders.filter(o => o.status !== 'Requested');
+
+    // Group active orders by time slot
+    const groupedOrders = activeOrders.reduce((acc, order) => {
+        const slotKey = order.timeSlot?.startTime ? `${order.timeSlot.startTime} - ${order.timeSlot.endTime}` : "Unassigned";
         if (!acc[slotKey]) acc[slotKey] = [];
         acc[slotKey].push(order);
         return acc;
@@ -102,7 +106,53 @@ export default function KitchenDashboard() {
 
                 {error && <p className="text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-400/20">{error}</p>}
 
-                <div className="grid grid-cols-1 gap-10">
+                {pendingRequests.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-6 rounded-3xl space-y-4">
+                        <div className="flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping"></span>
+                            <h2 className="text-xl font-black text-amber-400 tracking-tight">Incoming Order Requests ({pendingRequests.length})</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {pendingRequests.map(order => (
+                                <Card key={order._id} title={order.orderID} subtitle="Awaiting Acceptance">
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest flex justify-between">
+                                                <span>Items</span>
+                                                <span className={order.paymentStatus === 'Paid' ? 'text-emerald-400' : 'text-amber-400'}>
+                                                    {order.paymentMethod} - {order.paymentStatus}
+                                                </span>
+                                            </p>
+                                            <div className="space-y-1">
+                                                {order.items.map((item, idx) => (
+                                                    <p key={idx} className="text-sm font-medium text-slate-300">
+                                                        <span className="text-emerald-400 font-bold mr-2">{item.quantity}x</span> {item.name}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-800 flex gap-2">
+                                            <button
+                                                onClick={() => handleUpdateStatus(order._id, 'Pending')}
+                                                className="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black uppercase text-xs shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all hover:-translate-y-0.5"
+                                            >
+                                                Accept Order
+                                            </button>
+                                            <button
+                                                onClick={() => handleUpdateStatus(order._id, 'Rejected')}
+                                                className="px-4 py-3 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 font-black uppercase text-xs hover:bg-red-500 hover:text-white transition-all"
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-10 mt-8">
                     {Object.keys(groupedOrders).length === 0 ? (
                         <div className="py-20 text-center text-slate-500 border-2 border-dashed border-slate-800 rounded-3xl">
                             <p className="text-xl font-medium">No orders scheduled for today yet.</p>

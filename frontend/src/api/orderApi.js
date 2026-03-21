@@ -44,7 +44,7 @@ export const getCanteenOrders = async (canteenID) => {
 
 export const updateOrderStatus = async (statusData) => {
     const res = await fetch(`${API_URL}/status`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`

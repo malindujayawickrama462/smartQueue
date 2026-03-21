@@ -53,18 +53,15 @@ export const placeOrder = async (req, res) => {
         const { canteenID, items, totalPrice, paymentMethod } = req.body;
         const today = new Date().toISOString().split('T')[0]; // From authenticate middleware
 
-        const nextSlot = await calculateNextSlot(canteenID);
-
         const newOrder = new Order({
             student: req.userId,
             canteen: canteenID,
             items,
             totalPrice,
-            timeSlot: nextSlot,
             date: today,
             paymentMethod: paymentMethod === 'Card' ? 'Card' : 'Cash',
             paymentStatus: paymentMethod === 'Card' ? 'Paid' : 'Pending',
-            status: "Pending"
+            status: "Requested"
         });
 
         await newOrder.save();
@@ -159,8 +156,19 @@ export const updateOrderStatus = async (req, res) => {
             updateData.paymentStatus = paymentStatus;
         }
 
+        const existingOrder = await Order.findById(orderID);
+        if (!existingOrder) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // If staff is transitioning from Requested -> Pending (Accepting the order)
+        if (existingOrder.status === 'Requested' && status === 'Pending') {
+            const nextSlot = await calculateNextSlot(existingOrder.canteen);
+            updateData.timeSlot = nextSlot;
+        }
+
         const order = await Order.findOneAndUpdate(
-            { _id: orderID }, // We are querying by Mongoose _id in the frontend
+            { _id: orderID },
             updateData,
             { new: true }
         );
@@ -227,6 +235,19 @@ export const getCanteenAnalytics = async (req, res) => {
             orders: stats[0]?.totalOrders || 0,
             topItems: topItems.map(item => ({ name: item._id, sold: item.totalSold, rev: item.revenue }))
         });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getOrderById = async (req, res) => {
+    try {
+        const { orderID } = req.params;
+        const order = await Order.findById(orderID);
+        if (!order) return res.status(404).json({ message: "Order not found" });
+
+        // Return order, we could add stricter auth checks here if needed
+        res.status(200).json({ order });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

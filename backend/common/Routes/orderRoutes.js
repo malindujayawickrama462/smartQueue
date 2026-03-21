@@ -6,7 +6,8 @@ import {
     updateOrderStatus,
     getCanteenHistory,
     getCanteenAnalytics,
-    createPOSOrder
+    createPOSOrder,
+    getOrderById
 } from "../controllers/orderController.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { authorize } from "../middleware/authorize.js";
@@ -15,6 +16,7 @@ const orderRouter = express.Router();
 
 orderRouter.post("/place", authenticate, placeOrder);
 orderRouter.get("/student", authenticate, getStudentOrders);
+orderRouter.get("/:orderID", authenticate, getOrderById);
 
 // Staff routes
 orderRouter.get("/canteen/:canteenID", authenticate, authorize("admin", "staff"), getCanteenOrders);
