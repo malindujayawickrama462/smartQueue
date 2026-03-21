@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { createCanteen, deleteCanteen, getAllCanteens, assignManagerToCanteen, addStaffToCanteen, getCanteenStaff, removeStaffFromCanteen } from '../api/canteenApi';
+import { createCanteen, deleteCanteen, getAllCanteens, assignManagerToCanteen, getCanteenStaff, removeStaffFromCanteen } from '../api/canteenApi';
 import { Card } from '../components/Card';
 
 export default function AdminCanteens({ isSidebarMode = false }) {
@@ -20,12 +20,8 @@ export default function AdminCanteens({ isSidebarMode = false }) {
 
   const [selectedCanteen, setSelectedCanteen] = useState(null);
   const [staffList, setStaffList] = useState([]);
-  const [staffId, setStaffId] = useState('');
-  const [staffRole, setStaffRole] = useState('staff');
   const [managerId, setManagerId] = useState('');
-  const [addingStaff, setAddingStaff] = useState(false);
   const [assigningManager, setAssigningManager] = useState(false);
-  const [allUsers, setAllUsers] = useState([]);
   const [canteenDetails, setCanteenDetails] = useState({});
 
   const sortedCanteens = useMemo(() => {
@@ -45,13 +41,14 @@ export default function AdminCanteens({ isSidebarMode = false }) {
       // Load staff for each canteen
       const details = {};
       for (const canteen of canteenList) {
+        const identifier = canteen.canteenID || canteen._id;
         try {
-          const staffData = await getCanteenStaff(canteen.canteenID);
+          const staffData = await getCanteenStaff(identifier);
           details[canteen._id] = {
             manager: staffData.manager,
             staff: staffData.staff || [],
           };
-        } catch (err) {
+        } catch {
           details[canteen._id] = { manager: null, staff: [] };
         }
       }
@@ -69,7 +66,8 @@ export default function AdminCanteens({ isSidebarMode = false }) {
     if (!ok) return;
     setError('');
     try {
-      await deleteCanteen(canteen.canteenID);
+      const identifier = canteen.canteenID || canteen._id;
+      await deleteCanteen(identifier);
       await loadCanteens();
     } catch (err) {
       setError(err.message || 'Failed to delete canteen');
@@ -78,7 +76,6 @@ export default function AdminCanteens({ isSidebarMode = false }) {
 
   useEffect(() => {
     loadCanteens();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onCreateCanteen = async (e) => {
@@ -112,11 +109,11 @@ export default function AdminCanteens({ isSidebarMode = false }) {
 
   const onSelectCanteen = async (canteen) => {
     setSelectedCanteen(canteen);
-    setStaffId('');
     setManagerId('');
     setError('');
     try {
-      const data = await getCanteenStaff(canteen.canteenID);
+      const identifier = canteen.canteenID || canteen._id;
+      const data = await getCanteenStaff(identifier);
       setStaffList(data.staff || []);
     } catch (err) {
       setError(err.message || 'Failed to load staff');
@@ -132,7 +129,8 @@ export default function AdminCanteens({ isSidebarMode = false }) {
     }
     setAssigningManager(true);
     try {
-      await assignManagerToCanteen(selectedCanteen.canteenID, managerId);
+      const identifier = selectedCanteen.canteenID || selectedCanteen._id;
+      await assignManagerToCanteen(identifier, managerId);
       setManagerId('');
       await onSelectCanteen(selectedCanteen);
       await loadCanteens();
@@ -143,50 +141,18 @@ export default function AdminCanteens({ isSidebarMode = false }) {
     }
   };
 
-  const onAddStaff = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (!staffId) {
-      setError('Please select a staff member');
-      return;
-    }
-    setAddingStaff(true);
-    try {
-      await addStaffToCanteen(selectedCanteen.canteenID, staffId, staffRole);
-      setStaffId('');
-      setStaffRole('staff');
-      await onSelectCanteen(selectedCanteen);
-    } catch (err) {
-      setError(err.message || 'Failed to add staff');
-    } finally {
-      setAddingStaff(false);
-    }
-  };
-
   const onRemoveStaff = async (staffMemberId) => {
     const ok = confirm('Remove this staff member from the canteen?');
     if (!ok) return;
     setError('');
     try {
-      await removeStaffFromCanteen(selectedCanteen.canteenID, staffMemberId);
+      const identifier = selectedCanteen.canteenID || selectedCanteen._id;
+      await removeStaffFromCanteen(identifier, staffMemberId);
       await onSelectCanteen(selectedCanteen);
     } catch (err) {
       setError(err.message || 'Failed to remove staff');
     }
   };
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await getAllCanteens();
-        // Get users from the creators
-        setAllUsers(data.canteens?.map(c => ({ _id: c.createdBy._id, name: c.createdBy.name, email: c.createdBy.email })) || []);
-      } catch (err) {
-        // Silent fail for user loading
-      }
-    };
-    fetchUsers();
-  }, []);
 
   return (
     <div className={isSidebarMode ? '' : 'min-h-screen bg-slate-950 text-slate-100 px-4 py-10'}>
@@ -194,9 +160,12 @@ export default function AdminCanteens({ isSidebarMode = false }) {
         {!isSidebarMode && (
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">Canteen Management</h1>
-              <p className="text-sm text-slate-400">
-                Logged in as <span className="font-mono text-slate-200">{user?.email}</span>
+              <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400 drop-shadow-sm">
+                Canteen Management
+              </h1>
+              <p className="text-sm text-slate-400 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                Logged in as <span className="font-mono text-slate-200 font-medium">{user?.email}</span>
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -318,65 +287,89 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                     return (
                       <div
                         key={c._id}
-                        className="rounded-lg border border-slate-700 bg-slate-950/40 p-4 space-y-3"
+                        className="group relative rounded-2xl border border-slate-700/50 bg-slate-900/30 p-5 space-y-4 hover:border-sky-500/50 hover:bg-slate-800/40 hover:-translate-y-1 hover:shadow-[0_8px_30px_-5px_rgba(14,165,233,0.15)] transition-all duration-300 overflow-hidden"
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                        <div className="flex items-start justify-between gap-4 relative z-10">
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-bold text-slate-100">{c.name}</div>
-                            <div className="text-xs text-slate-400">{c.location}</div>
-                            <div className="text-xs text-slate-500 mt-1">
-                              Capacity: <span className="text-slate-300">{c.capacity}</span>
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-bold text-slate-100 group-hover:text-sky-400 transition-colors">
+                                {c.name}
+                              </h3>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                                {c.location}
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-2 flex items-center gap-2">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              Capacity: <span className="text-slate-200 font-semibold">{c.capacity}</span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-xs font-mono text-slate-400">{c.canteenID}</div>
+                            <div className="text-[10px] font-mono tracking-wider uppercase text-slate-400 bg-slate-950/60 px-2 py-1 rounded-md border border-slate-800 shadow-inner">
+                              {c.canteenID}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="border-t border-slate-700 pt-3 space-y-2">
+                        <div className="border-t border-slate-700/60 pt-4 space-y-3 relative z-10">
                           <div>
-                            <p className="text-xs font-semibold text-slate-300 mb-1">Manager</p>
-                            {details.manager ? (
-                              <p className="text-xs text-emerald-400">✓ Assigned</p>
-                            ) : (
-                              <p className="text-xs text-slate-500">Not assigned</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold text-slate-300 mb-1">
-                              Staff ({details.staff.length})
-                            </p>
-                            {details.staff.length > 0 ? (
-                              <div className="space-y-1">
-                                {details.staff.slice(0, 2).map((s) => (
-                                  <p key={s._id} className="text-xs text-slate-400">
-                                    • {s.staff.name} <span className="text-slate-500">({s.role})</span>
-                                  </p>
-                                ))}
-                                {details.staff.length > 2 && (
-                                  <p className="text-xs text-slate-500">+{details.staff.length - 2} more</p>
-                                )}
+                            <p className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Manager</p>
+                            {details.manager ? (() => {
+                              const managerStaff = details.staff.find(s => s.staff && s.staff._id === details.manager);
+                              return (
+                                <div className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                  <span className="text-xs font-semibold">{managerStaff && managerStaff.staff ? managerStaff.staff.name : 'Unknown'}</span>
+                                </div>
+                              );
+                            })() : (
+                              <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-500/80 px-2.5 py-1 rounded-md border border-amber-500/20">
+                                <span className="text-xs font-medium">Pending Assignment</span>
                               </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">
+                              Staff Roster ({details.staff.filter(s => s.staff).length})
+                            </p>
+                            {details.staff.filter(s => s.staff).length > 0 ? (
+                              <select
+                                className="w-full appearance-none rounded-lg border border-slate-700/80 bg-slate-950/80 px-3 py-2 text-xs text-slate-300 outline-none hover:border-slate-600 focus:border-sky-500 transition-colors shadow-sm cursor-pointer"
+                                defaultValue=""
+                              >
+                                <option value="" disabled>Click to view staff members...</option>
+                                {details.staff.filter(s => s.staff).map((s) => (
+                                  <option key={s._id} value={s._id} disabled>
+                                    {s.staff.name} — {s.role.toUpperCase()}
+                                  </option>
+                                ))}
+                              </select>
                             ) : (
-                              <p className="text-xs text-slate-500">No staff assigned</p>
+                              <p className="text-xs text-slate-500 italic">No staff assigned</p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-3 pt-2 relative z-10">
                           <button
-                            className="flex-1 text-xs rounded-md border border-slate-600 bg-slate-900/50 px-2 py-1.5 text-slate-200 hover:border-emerald-500 hover:text-emerald-300 transition"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2 text-slate-200 hover:bg-sky-500 hover:border-sky-400 hover:text-white hover:shadow-[0_0_15px_-3px_rgba(14,165,233,0.4)] transition-all duration-300"
                             onClick={() => onSelectCanteen(c)}
                             title="Manage staff"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
                             Manage
                           </button>
                           <button
-                            className="flex-1 text-xs rounded-md border border-slate-600 bg-slate-900/50 px-2 py-1.5 text-slate-200 hover:border-red-500 hover:text-red-300 transition"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg border border-slate-600/60 bg-slate-800/50 px-3 py-2 text-slate-200 hover:bg-red-500 hover:border-red-400 hover:text-white hover:shadow-[0_0_15px_-3px_rgba(239,68,68,0.4)] transition-all duration-300"
                             onClick={() => onDelete(c)}
                             title="Delete canteen"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             Delete
                           </button>
                         </div>
@@ -392,122 +385,75 @@ export default function AdminCanteens({ isSidebarMode = false }) {
         {selectedCanteen && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-slate-100">Staff Management: {selectedCanteen.name}</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card title="Assign Manager" subtitle="Set the canteen manager">
-                <form className="space-y-4" onSubmit={onAssignManager}>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-200" htmlFor="manager">
-                      Select Manager
-                    </label>
-                    <select
-                      id="manager"
-                      value={managerId}
-                      onChange={(e) => setManagerId(e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
-                    >
-                      <option value="">Choose a manager...</option>
-                      {allUsers.map((u) => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {error && (
-                    <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-md px-3 py-2">
-                      {error}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={assigningManager}
-                    className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            <Card title="Assign Manager" subtitle="Set the canteen manager">
+              <form className="space-y-4" onSubmit={onAssignManager}>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-200" htmlFor="manager">
+                    Select Manager (From Staff)
+                  </label>
+                  <select
+                    id="manager"
+                    value={managerId}
+                    onChange={(e) => setManagerId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
                   >
-                    {assigningManager ? 'Assigning...' : 'Assign Manager'}
-                  </button>
-                </form>
-              </Card>
+                    <option value="">Choose a manager...</option>
+                    {staffList.filter(s => s.staff).map((s) => (
+                      <option key={s.staff._id} value={s.staff._id}>
+                        {s.staff.name} ({s.staff.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <Card title="Add Staff" subtitle="Assign staff to this canteen">
-                <form className="space-y-4" onSubmit={onAddStaff}>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-200" htmlFor="staff">
-                      Select Staff Member
-                    </label>
-                    <select
-                      id="staff"
-                      value={staffId}
-                      onChange={(e) => setStaffId(e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
-                    >
-                      <option value="">Choose staff member...</option>
-                      {allUsers.map((u) => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {error && (
+                  <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-md px-3 py-2">
+                    {error}
+                  </p>
+                )}
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-slate-200" htmlFor="role">
-                      Role
-                    </label>
-                    <select
-                      id="role"
-                      value={staffRole}
-                      onChange={(e) => setStaffRole(e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
-                    >
-                      <option value="staff">Staff</option>
-                      <option value="supervisor">Supervisor</option>
-                    </select>
-                  </div>
-
-                  {error && (
-                    <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-md px-3 py-2">
-                      {error}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={addingStaff}
-                    className="w-full inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
-                  >
-                    {addingStaff ? 'Adding...' : 'Add Staff'}
-                  </button>
-                </form>
-              </Card>
-            </div>
+                <button
+                  type="submit"
+                  disabled={assigningManager}
+                  className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                >
+                  {assigningManager ? 'Assigning...' : 'Assign Manager'}
+                </button>
+              </form>
+            </Card>
 
             <Card title="Current Staff" subtitle={`${staffList.length} staff members assigned`}>
               {staffList.length === 0 ? (
                 <p className="text-sm text-slate-400">No staff assigned to this canteen yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {staffList.map((s) => (
+                  {staffList.filter(s => s.staff).map((s) => (
                     <div
                       key={s._id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-slate-800 bg-slate-950/20 px-3 py-2"
+                      className="group flex items-center justify-between gap-4 rounded-xl border border-slate-700/80 bg-slate-900/40 px-4 py-3 hover:bg-slate-800/80 hover:border-sky-500/50 transition-all duration-300 hover:shadow-lg"
                     >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{s.staff.name}</div>
-                        <div className="text-xs text-slate-400 truncate">{s.staff.email}</div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-md group-hover:shadow-sky-500/30 transition-shadow">
+                          {s.staff.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-100 truncate group-hover:text-sky-300 transition-colors">{s.staff.name}</div>
+                          <div className="text-xs text-slate-400 truncate">{s.staff.email}</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <div className="text-xs font-mono text-slate-300">{s.staff.userID}</div>
-                          <div className="text-xs text-emerald-400 capitalize">{s.role}</div>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <div className="text-xs font-mono text-slate-500">{s.staff.userID}</div>
+                          <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 mt-1">
+                            {s.role}
+                          </div>
                         </div>
                         <button
-                          className="text-xs rounded-md border border-slate-700 bg-slate-900/50 px-2 py-1 text-slate-200 hover:border-red-500 hover:text-red-300 transition"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-400 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-all shadow-sm"
                           onClick={() => onRemoveStaff(s.staff._id)}
                           title="Remove staff"
                         >
-                          Remove
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </div>
                     </div>
@@ -525,6 +471,6 @@ export default function AdminCanteens({ isSidebarMode = false }) {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

@@ -50,7 +50,7 @@ canteenSchema.pre("save", async function () {
         this.canteenID = `Canteen-${counter.seq.toString().padStart(4, '0')}`;
     } catch (error) {
         throw error;
-    }
+        }
 });
 
 const Canteen = mongoose.model("canteen", canteenSchema);

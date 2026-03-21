@@ -1,6 +1,9 @@
 import Canteen from "../models/Canteen.js";
 import User from "../models/User.js";
 import CanteenStaff from "../models/CanteenStaff.js";
+import mongoose from "mongoose";
+
+const getCanteenQuery = (id) => mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { canteenID: id };
 
 // Admin: Create a new canteen
 export async function createCanteen(req, res) {
@@ -58,7 +61,7 @@ export async function getCanteenDetails(req, res) {
     try {
         const { canteenID } = req.params;
 
-        const canteen = await Canteen.findOne({ canteenID })
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID))
             .populate("createdBy", "name email");
 
         if (!canteen) {
@@ -99,7 +102,7 @@ export async function updateCanteen(req, res) {
         const { canteenID } = req.params;
         const { name, location, description, capacity, isActive } = req.body;
 
-        const canteen = await Canteen.findOne({ canteenID });
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
@@ -138,7 +141,7 @@ export async function deleteCanteen(req, res) {
     try {
         const { canteenID } = req.params;
 
-        const canteen = await Canteen.findOneAndDelete({ canteenID });
+        const canteen = await Canteen.findOneAndDelete(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
@@ -168,7 +171,7 @@ export async function assignManagerToCanteen(req, res) {
             });
         }
 
-        const canteen = await Canteen.findOne({ canteenID });
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
@@ -176,7 +179,7 @@ export async function assignManagerToCanteen(req, res) {
             });
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findOne(mongoose.Types.ObjectId.isValid(userId) ? { _id: userId } : { userID: userId });
 
         if (!user) {
             return res.status(404).json({
@@ -184,7 +187,19 @@ export async function assignManagerToCanteen(req, res) {
             });
         }
 
-        canteen.manager = userId;
+        // Check if user is already assigned to this canteen as staff
+        const isStaff = await CanteenStaff.findOne({
+            canteen: canteen._id,
+            staff: user._id
+        });
+
+        if (!isStaff) {
+            return res.status(400).json({
+                msg: "User must be part of the canteen staff to be assigned as manager"
+            });
+        }
+
+        canteen.manager = user._id;
         await canteen.save();
 
         res.status(200).json({
@@ -211,7 +226,7 @@ export async function addStaffToCanteen(req, res) {
             });
         }
 
-        const canteen = await Canteen.findOne({ canteenID });
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
@@ -219,7 +234,7 @@ export async function addStaffToCanteen(req, res) {
             });
         }
 
-        const staff = await User.findById(staffId);
+        const staff = await User.findOne(mongoose.Types.ObjectId.isValid(staffId) ? { _id: staffId } : { userID: staffId });
 
         if (!staff) {
             return res.status(404).json({
@@ -227,10 +242,16 @@ export async function addStaffToCanteen(req, res) {
             });
         }
 
+        if (staff.role !== "staff") {
+            return res.status(400).json({
+                msg: "Only users with the 'staff' role can be assigned to a canteen"
+            });
+        }
+
         // Check if already assigned
         const existingAssignment = await CanteenStaff.findOne({
             canteen: canteen._id,
-            staff: staffId
+            staff: staff._id
         });
 
         if (existingAssignment) {
@@ -241,7 +262,7 @@ export async function addStaffToCanteen(req, res) {
 
         const canteenStaff = await CanteenStaff.create({
             canteen: canteen._id,
-            staff: staffId,
+            staff: staff._id,
             assignedBy: req.userId,
             role: role || "staff"
         });
@@ -264,7 +285,7 @@ export async function getCanteenStaff(req, res) {
     try {
         const { canteenID } = req.params;
 
-        const canteen = await Canteen.findOne({ canteenID });
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
@@ -296,7 +317,7 @@ export async function removeStaffFromCanteen(req, res) {
     try {
         const { canteenID, staffId } = req.params;
 
-        const canteen = await Canteen.findOne({ canteenID });
+        const canteen = await Canteen.findOne(getCanteenQuery(canteenID));
 
         if (!canteen) {
             return res.status(404).json({
