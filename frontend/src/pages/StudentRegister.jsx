@@ -1,32 +1,34 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../auth/authApi';
-import { useAuth } from '../auth/AuthContext';
+import { register } from '../auth/authApi';
 import { Card } from '../components/Card';
 
-export default function Login() {
+export default function StudentRegister() {
   const nav = useNavigate();
-  const { refresh } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [done, setDone] = useState('');
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!email.trim() || !password) {
-      setError('Email and password are required.');
+    setDone('');
+
+    if (!name.trim() || !email.trim() || !password) {
+      setError('All fields are required.');
       return;
     }
+
     setLoading(true);
     try {
-      await login({ email, password });
-      await refresh();
-      // role-based landing happens in router via /me
-      nav('/me', { replace: true });
+      await register({ name, email, password, role: 'student' });
+      setDone('Student account created. Please login.');
+      setTimeout(() => nav('/login'), 600);
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -36,23 +38,35 @@ export default function Login() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Login</h1>
-          <p className="text-sm text-slate-400">Use the credentials provided by admin.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Create Student Account</h1>
+          <p className="text-sm text-slate-400">Register as a student to access student dashboard.</p>
         </div>
 
         <Card
-          title="Sign in"
-          subtitle="JWT token will be stored locally."
+          title="Student Registration"
+          subtitle="You can create your account without an admin token."
           footer={
             <p className="text-xs text-slate-400">
-              Need to create the first admin?{' '}
-              <button className="text-sky-400 hover:text-sky-300" onClick={() => nav('/admin/register')}>
-                Register admin
+              Already registered?{' '}
+              <button className="text-sky-400 hover:text-sky-300" onClick={() => nav('/login')}>
+                Login
               </button>
             </p>
           }
         >
           <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-200" htmlFor="name">
+                Name
+              </label>
+              <input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
+              />
+            </div>
+
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-200" htmlFor="email">
                 Email
@@ -84,20 +98,19 @@ export default function Login() {
                 {error}
               </p>
             )}
+            {done && (
+              <p className="text-xs text-emerald-300 bg-emerald-900/20 border border-emerald-900/40 rounded-md px-3 py-2">
+                {done}
+              </p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
             >
-              {loading ? 'Signing in...' : 'Login'}
+              {loading ? 'Creating...' : 'Create student'}
             </button>
-
-            <div className="pt-4 text-center">
-              <button className="text-xs text-sky-400 hover:text-sky-300" type="button" onClick={() => nav('/student/register')}>
-                Create student account
-              </button>
-            </div>
           </form>
         </Card>
       </div>

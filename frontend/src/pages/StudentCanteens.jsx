@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { viewCanteens } from '../api/canteenApi';
+import { createOrder } from '../api/orderApi';
 import { Card } from '../components/Card';
 
 export default function StudentCanteens() {
@@ -11,6 +12,8 @@ export default function StudentCanteens() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCanteen, setSelectedCanteen] = useState(null);
+  const [ordering, setOrdering] = useState(false);
+  const [orderMsg, setOrderMsg] = useState('');
 
   useEffect(() => {
     const loadCanteens = async () => {
@@ -35,6 +38,22 @@ export default function StudentCanteens() {
 
   const handleCloseDetails = () => {
     setSelectedCanteen(null);
+    setOrderMsg('');
+  };
+
+  const handleProceedToQueue = async () => {
+    if (!selectedCanteen?.canteenID) return;
+    setError('');
+    setOrderMsg('');
+    setOrdering(true);
+    try {
+      const data = await createOrder(selectedCanteen.canteenID);
+      setOrderMsg(data?.msg || 'Order placed! You are in the queue.');
+    } catch (err) {
+      setError(err.message || 'Failed to place order');
+    } finally {
+      setOrdering(false);
+    }
   };
 
   return (
@@ -50,7 +69,7 @@ export default function StudentCanteens() {
           <div className="flex gap-2">
             <button
               className="text-sm text-slate-300 hover:text-white"
-              onClick={() => nav('/home')}
+              onClick={() => nav('/student')}
             >
               Home
             </button>
@@ -150,10 +169,19 @@ export default function StudentCanteens() {
                 </div>
               </div>
 
+              {orderMsg && (
+                <p className="text-sm text-emerald-400 bg-emerald-900/20 border border-emerald-800/40 rounded-lg px-3 py-2">
+                  {orderMsg}
+                </p>
+              )}
+
               <button
-                className="w-full mt-4 inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400 transition"
+                type="button"
+                onClick={handleProceedToQueue}
+                disabled={ordering}
+                className="w-full mt-4 inline-flex items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed transition"
               >
-                Proceed to Queue
+                {ordering ? 'Placing order...' : 'Proceed to Queue'}
               </button>
             </div>
           </Card>

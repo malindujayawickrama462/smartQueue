@@ -10,7 +10,7 @@ export default function Me() {
     if (loading) return;
     if (!isAuthed) nav('/login', { replace: true });
     else if (role === 'admin') nav('/admin', { replace: true });
-    else nav('/home', { replace: true });
+    else nav('/student', { replace: true });
   }, [isAuthed, loading, nav, role]);
 
   return null;

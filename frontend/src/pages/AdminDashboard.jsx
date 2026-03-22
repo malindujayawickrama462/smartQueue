@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminDashboardOverview from '../components/AdminDashboardOverview';
@@ -8,6 +9,7 @@ import StaffManagement from '../components/StaffManagement';
 import CanteenManagementSection from '../components/CanteenManagementSection';
 
 export default function AdminDashboard() {
+  const nav = useNavigate();
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
 
@@ -41,9 +43,25 @@ export default function AdminDashboard() {
               Logged in as <span className="font-mono text-slate-200">{user?.email}</span>
             </p>
           </div>
-          <button className="text-sm text-slate-300 hover:text-white" onClick={logout}>
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              className="text-sm text-slate-300 hover:text-white"
+              onClick={() => nav('/admin/complaints')}
+            >
+              Complaints
+            </button>
+            <button
+              type="button"
+              className="text-sm text-slate-300 hover:text-white"
+              onClick={() => nav('/student')}
+            >
+              Student Dashboard
+            </button>
+            <button className="text-sm text-slate-300 hover:text-white" onClick={logout}>
+              Logout
+            </button>
+          </div>
         </div>
 
         <div className="p-8">

@@ -62,6 +62,25 @@ export default function UserHome() {
             Browse Canteens
           </button>
         </Card>
+
+        <Card title="Smart canteen tools" subtitle="Peak times and feedback">
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => nav('/peak-time')}
+              className="w-full inline-flex items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-sky-500/40 hover:bg-sky-400 transition"
+            >
+              Peak time chart
+            </button>
+            <button
+              type="button"
+              onClick={() => nav('/complaints')}
+              className="w-full inline-flex items-center justify-center rounded-lg bg-violet-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-violet-500/40 hover:bg-violet-400 transition"
+            >
+              Complaints
+            </button>
+          </div>
+        </Card>
       </div>
     </div>
   );

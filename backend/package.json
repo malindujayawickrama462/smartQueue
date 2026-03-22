@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "nodemon server.js",
+    "seed:orders": "node scripts/seedOrders.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -14,13 +15,14 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC", 
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/malindujayawickrama462/SahanaNet/issues"
   },
   "homepage": "https://github.com/malindujayawickrama462/SahanaNet#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",

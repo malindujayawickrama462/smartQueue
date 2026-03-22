@@ -13,32 +13,38 @@ export async function RegisterUser(req,res) {
 
         // Bootstrap rule:
         // - Only the first-ever admin can be created publicly.
-        // - After an admin exists, creating ANY user requires an admin JWT.
+        // - After an admin exists, creating users generally requires an admin JWT.
+        //   (But students are allowed to self-register.)
         const adminCount = await User.countDocuments({ role: "admin" });
         const requestedRole = role || "admin";
 
         if (adminCount > 0) {
-            const token = req.header("Authorization")?.replace("Bearer ", "");
-            if (!token) {
-                return res.status(403).json({
-                    msg: "Registration is disabled. Admin must create users."
-                });
-            }
+            // If role is student, allow public registration.
+            if (requestedRole === "student") {
+                // continue without requiring admin auth
+            } else {
+                const token = req.header("Authorization")?.replace("Bearer ", "");
+                if (!token) {
+                    return res.status(403).json({
+                        msg: "Registration is disabled. Admin must create users.",
+                    });
+                }
 
-            let decoded;
-            try {
-                decoded = jwt.verify(token, process.env.SECRET_KEY);
-            } catch (err) {
-                return res.status(401).json({
-                    msg: err.name === "TokenExpiredError" ? "Token has expired" : "Invalid token"
-                });
-            }
+                let decoded;
+                try {
+                    decoded = jwt.verify(token, process.env.SECRET_KEY);
+                } catch (err) {
+                    return res.status(401).json({
+                        msg: err.name === "TokenExpiredError" ? "Token has expired" : "Invalid token",
+                    });
+                }
 
-            const requester = await User.findById(decoded.id);
-            if (!requester || requester.role !== "admin") {
-                return res.status(403).json({
-                    msg: "Access denied. Admin role required."
-                });
+                const requester = await User.findById(decoded.id);
+                if (!requester || requester.role !== "admin") {
+                    return res.status(403).json({
+                        msg: "Access denied. Admin role required.",
+                    });
+                }
             }
         } else {
             // No admins exist yet: only allow creating the first admin publicly
