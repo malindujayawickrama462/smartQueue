@@ -120,9 +120,16 @@ export default function StudentOrder() {
     };
 
     const handleCheckoutDecision = (method) => {
-        if (cart.length === 0) return;
+        if (cart.length === 0) {
+            setError("Your cart is empty.");
+            return;
+        }
         if (!selectedSlot) {
             setError("Please select a pickup time slot first.");
+            return;
+        }
+        if (totalPrice <= 0) {
+            setError("Total amount must be greater than zero.");
             return;
         }
         if (method === 'Card') {

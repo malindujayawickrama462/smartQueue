@@ -15,8 +15,13 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim() || !password) {
       setError('Email and password are required.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
       return;
     }
     setLoading(true);
@@ -74,6 +79,8 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
+                  maxLength={100}
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 pl-11 pr-4 py-3 text-sm text-slate-100 outline-none focus:border-sky-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-sky-500/10 transition-all duration-300 shadow-inner"
                   placeholder="admin@smartqueue.com"
                 />
@@ -93,6 +100,8 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 pl-11 pr-4 py-3 text-sm text-slate-100 outline-none focus:border-sky-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-sky-500/10 transition-all duration-300 shadow-inner"
                   placeholder="••••••••"
                 />

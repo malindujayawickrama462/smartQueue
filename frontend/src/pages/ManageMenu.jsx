@@ -54,6 +54,23 @@ export default function ManageMenu() {
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
+        if (!formData.name.trim() || !formData.price || !formData.category.trim()) {
+            alert('Please fill in all required fields.');
+            return;
+        }
+        const priceNum = parseFloat(formData.price);
+        if (isNaN(priceNum) || priceNum <= 0 || priceNum > 100000) {
+            alert('Price must be a valid positive number up to 100,000.');
+            return;
+        }
+        if (formData.name.trim().length < 2) {
+            alert('Item name must be at least 2 characters.');
+            return;
+        }
+        if (formData.description.length > 500) {
+            alert('Description is too long (max 500 characters).');
+            return;
+        }
         try {
             if (editItem) {
                 await updateFoodItem(editItem._id, formData);
@@ -145,6 +162,8 @@ export default function ManageMenu() {
                                         <input
                                             required
                                             type="text"
+                                            minLength={2}
+                                            maxLength={50}
                                             value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
                                             className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                                             placeholder="e.g. Chicken Fried Rice"
@@ -155,6 +174,9 @@ export default function ManageMenu() {
                                         <input
                                             required
                                             type="number"
+                                            min={1}
+                                            max={100000}
+                                            step="0.01"
                                             value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })}
                                             className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                                             placeholder="e.g. 450"
@@ -165,6 +187,8 @@ export default function ManageMenu() {
                                         <input
                                             required
                                             type="text"
+                                            minLength={2}
+                                            maxLength={30}
                                             value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}
                                             className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                                             placeholder="e.g. Lunch, Snacks, Drinks"
@@ -173,7 +197,8 @@ export default function ManageMenu() {
                                     <div className="space-y-1">
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Image URL (Optional)</label>
                                         <input
-                                            type="text"
+                                            type="url"
+                                            maxLength={500}
                                             value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })}
                                             className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                                             placeholder="https://..."
@@ -184,6 +209,7 @@ export default function ManageMenu() {
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</label>
                                     <textarea
                                         value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        maxLength={500}
                                         className="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                                         rows="2" placeholder="Brief description of the item..."
                                     />

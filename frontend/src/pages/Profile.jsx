@@ -17,8 +17,17 @@ export default function Profile() {
     e.preventDefault();
     setMsg('');
     setError('');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!name.trim() || !email.trim()) {
       setError('Name and email are required.');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters long.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
       return;
     }
     setSaving(true);
@@ -85,6 +94,9 @@ export default function Profile() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={50}
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 pl-11 pr-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300 shadow-inner"
                 />
               </div>
@@ -103,6 +115,7 @@ export default function Profile() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 pl-11 pr-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300 shadow-inner"
                 />
               </div>

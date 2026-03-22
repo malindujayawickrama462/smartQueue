@@ -59,8 +59,21 @@ export default function AdminManagement() {
     e.preventDefault();
     setError('');
     setCreatedMsg('');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!name.trim() || !email.trim() || !password) {
       setError('Name, email, password are required.');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters long.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
     setCreating(true);
@@ -104,6 +117,9 @@ export default function AdminManagement() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={50}
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-purple-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-purple-500/10 transition-all duration-300 shadow-inner"
                   placeholder="e.g. Master Admin"
                 />
@@ -118,6 +134,7 @@ export default function AdminManagement() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-purple-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-purple-500/10 transition-all duration-300 shadow-inner"
                   placeholder="admin@smartqueue.com"
                 />
@@ -132,6 +149,8 @@ export default function AdminManagement() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-purple-500 focus:bg-slate-900/80 focus:ring-4 focus:ring-purple-500/10 transition-all duration-300 shadow-inner"
                   placeholder="••••••••"
                 />
