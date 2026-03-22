@@ -8,7 +8,9 @@ import {
     getCanteenAnalytics,
     createPOSOrder,
     getOrderById,
-    getAvailableSlots
+    getAvailableSlots,
+    getGlobalAnalytics,
+    generateAdminReport
 } from "../controllers/orderController.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { authorize } from "../middleware/authorize.js";
@@ -26,5 +28,9 @@ orderRouter.get("/canteen/:canteenID/history", authenticate, authorize("admin", 
 orderRouter.get("/canteen/:canteenID/analytics", authenticate, authorize("admin", "staff"), getCanteenAnalytics);
 orderRouter.patch("/status", authenticate, authorize("admin", "staff"), updateOrderStatus);
 orderRouter.post("/canteen/:canteenID/pos", authenticate, authorize("admin", "staff"), createPOSOrder);
+
+// Admin global routes
+orderRouter.get("/global/analytics", authenticate, authorize("admin"), getGlobalAnalytics);
+orderRouter.get("/global/reports", authenticate, authorize("admin"), generateAdminReport);
 
 export default orderRouter;

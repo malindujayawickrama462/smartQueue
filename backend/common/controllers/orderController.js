@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import Canteen from "../models/Canteen.js";
 import Counter from "../models/Counter.js";
+import mongoose from "mongoose";
 import { getIO } from "../services/socketService.js";
 
 // Helper to calculate next available time slot
@@ -338,6 +339,151 @@ export const getOrderById = async (req, res) => {
 
         // Return order, we could add stricter auth checks here if needed
         res.status(200).json({ order });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getGlobalAnalytics = async (req, res) => {
+    try {
+        const { startDate, endDate, canteenID } = req.query;
+
+        let matchStage = { status: 'Completed' };
+
+        if (canteenID && canteenID !== 'all') {
+            matchStage.canteen = new mongoose.Types.ObjectId(canteenID);
+        }
+
+        if (startDate || endDate) {
+            matchStage.createdAt = {};
+            if (startDate) {
+                matchStage.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                matchStage.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
+            }
+        }
+
+        const stats = await Order.aggregate([
+            { $match: matchStage },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$totalPrice" },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const topItems = await Order.aggregate([
+            { $match: matchStage },
+            { $unwind: "$items" },
+            {
+                $group: {
+                    _id: "$items.name",
+                    totalSold: { $sum: "$items.quantity" },
+                    revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
+                }
+            },
+            { $sort: { totalSold: -1 } },
+            { $limit: 10 }
+        ]);
+
+        res.status(200).json({
+            revenue: stats[0]?.totalRevenue || 0,
+            orders: stats[0]?.totalOrders || 0,
+            topItems: topItems.map(item => ({ name: item._id, sold: item.totalSold, rev: item.revenue }))
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const generateAdminReport = async (req, res) => {
+    try {
+        const { startDate, endDate, canteenID, reportType } = req.query;
+
+        let matchStage = { status: 'Completed' };
+        
+        if (reportType === 'late_orders') {
+            matchStage.status = 'Late';
+        }
+
+        if (canteenID && canteenID !== 'all') {
+            matchStage.canteen = new mongoose.Types.ObjectId(canteenID);
+        }
+
+        if (startDate || endDate) {
+            matchStage.createdAt = {};
+            if (startDate) matchStage.createdAt.$gte = new Date(startDate);
+            if (endDate) matchStage.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
+        }
+
+        let reportData = {};
+
+        switch (reportType) {
+            case 'orders':
+                reportData = await Order.find(matchStage).populate('student', 'name userID').sort({ createdAt: -1 });
+                break;
+            case 'time_slots':
+                reportData = await Order.aggregate([
+                    { $match: matchStage },
+                    { $group: { _id: "$timeSlot.startTime", totalOrders: { $sum: 1 } } },
+                    { $sort: { "_id": 1 } }
+                ]);
+                break;
+            case 'food_items':
+                reportData = await Order.aggregate([
+                    { $match: matchStage },
+                    { $unwind: "$items" },
+                    { $group: { _id: "$items.name", totalSold: { $sum: "$items.quantity" }, revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } } } },
+                    { $sort: { totalSold: -1 } }
+                ]);
+                break;
+            case 'sales':
+                const sales = await Order.aggregate([
+                    { $match: matchStage },
+                    { $group: { 
+                        _id: "$paymentMethod", 
+                        revenue: { $sum: "$totalPrice" }, 
+                        orders: { $sum: 1 } 
+                    }}
+                ]);
+                const totalRev = await Order.aggregate([
+                    { $match: matchStage },
+                    { $group: { _id: null, total: { $sum: "$totalPrice" } } }
+                ]);
+                reportData = {
+                    paymentSplits: sales,
+                    totalRevenue: totalRev[0]?.total || 0
+                };
+                break;
+            case 'kitchen':
+                let kitchenMatch = { ...matchStage };
+                delete kitchenMatch.status; 
+                kitchenMatch.status = { $in: ['Completed', 'Late', 'Preparing', 'Ready'] };
+                
+                reportData = await Order.aggregate([
+                    { $match: kitchenMatch },
+                    { $group: { _id: "$status", count: { $sum: 1 } } }
+                ]);
+                break;
+            case 'crowd':
+                reportData = await Order.aggregate([
+                    { $match: matchStage },
+                    { $group: { _id: "$timeSlot.startTime", uniqueStudents: { $addToSet: "$student" } } },
+                    { $project: { _id: 1, studentCount: { $size: "$uniqueStudents" } } },
+                    { $sort: { studentCount: -1 } }
+                ]);
+                break;
+            case 'late_orders':
+                reportData = await Order.find(matchStage).populate('student', 'name userID').sort({ createdAt: -1 });
+                break;
+            default:
+                return res.status(400).json({ message: "Invalid report type" });
+        }
+
+        res.status(200).json({ reportType, data: reportData });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

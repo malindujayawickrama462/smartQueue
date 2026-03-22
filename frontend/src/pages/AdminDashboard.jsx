@@ -6,6 +6,8 @@ import AdminManagement from '../components/AdminManagement';
 import StudentManagement from '../components/StudentManagement';
 import StaffManagement from '../components/StaffManagement';
 import CanteenManagementSection from '../components/CanteenManagementSection';
+import AdminAnalytics from '../components/AdminAnalytics';
+import AdminReportGeneration from '../components/AdminReportGeneration';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -15,6 +17,10 @@ export default function AdminDashboard() {
     switch (activeSection) {
       case 'dashboard':
         return <AdminDashboardOverview />;
+      case 'analytics':
+        return <AdminAnalytics />;
+      case 'reports':
+        return <AdminReportGeneration />;
       case 'admins':
         return <AdminManagement />;
       case 'students':

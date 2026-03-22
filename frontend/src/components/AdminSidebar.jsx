@@ -3,6 +3,8 @@ import React from 'react';
 export default function AdminSidebar({ activeSection, setActiveSection }) {
   const sections = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'analytics', label: 'Platform Analytics', icon: '📈' },
+    { id: 'reports', label: 'Report Generation', icon: '📑' },
     { id: 'admins', label: 'Admin Management', icon: '👨‍💼' },
     { id: 'students', label: 'Student Management', icon: '👨‍🎓' },
     { id: 'staff', label: 'Staff Management', icon: '👨‍💻' },

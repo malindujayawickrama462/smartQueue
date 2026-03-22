@@ -70,3 +70,46 @@ export const updateOrderStatus = async (statusData) => {
     }
     return res.json();
 };
+
+export const getGlobalAnalytics = async (filters = {}) => {
+    const { startDate, endDate, canteenID } = filters;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (canteenID && canteenID !== 'all') params.append('canteenID', canteenID);
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`${API_URL}/global/analytics${queryString}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        }
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to fetch global analytics");
+    }
+    return res.json();
+};
+
+export const generateAdminReport = async (filters = {}) => {
+    const { startDate, endDate, canteenID, reportType } = filters;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (canteenID && canteenID !== 'all') params.append('canteenID', canteenID);
+    if (reportType) params.append('reportType', reportType);
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`${API_URL}/global/reports${queryString}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        }
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to generate report data");
+    }
+    return res.json();
+};
