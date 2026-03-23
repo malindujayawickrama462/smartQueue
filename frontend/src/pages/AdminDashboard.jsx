@@ -8,6 +8,7 @@ import StaffManagement from '../components/StaffManagement';
 import CanteenManagementSection from '../components/CanteenManagementSection';
 import AdminAnalytics from '../components/AdminAnalytics';
 import AdminReportGeneration from '../components/AdminReportGeneration';
+import AdminComplaints from '../components/AdminComplaints';
 import TopNavbar from '../components/TopNavbar';
 
 export default function AdminDashboard() {
@@ -30,6 +31,8 @@ export default function AdminDashboard() {
         return <StaffManagement />;
       case 'canteens':
         return <CanteenManagementSection />;
+      case 'complaints':
+        return <AdminComplaints />;
       default:
         return <AdminDashboardOverview />;
     }

@@ -6,6 +6,7 @@ import { placeOrder, getAvailableSlots } from '../api/orderApi';
 import { generateInvoice } from '../api/invoiceApi';
 import { getAllFoodItems } from '../api/foodApi';
 import { useAuth } from '../auth/AuthContext';
+import PeakTimeIndicator from '../components/PeakTimeIndicator';
 
 export default function StudentOrder() {
     const { canteenId } = useParams();
@@ -26,7 +27,7 @@ export default function StudentOrder() {
             try {
                 const data = await getAllFoodItems(canteenId);
                 setMenu(data.items);
-                
+
                 try {
                     const slotData = await getAvailableSlots(canteenId);
                     setAvailableSlots(slotData.slots || []);
@@ -236,6 +237,8 @@ export default function StudentOrder() {
                         <button onClick={() => nav('/canteens')} className="text-sm text-slate-400 hover:text-white">Change Canteen</button>
                     </div>
 
+                    <PeakTimeIndicator canteenId={canteenId} />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {menu.map(item => (
                             <div key={item._id} className={`p-4 rounded-2xl bg-slate-900/40 border transition group ${item.availability ? 'border-slate-800 hover:border-slate-700' : 'border-slate-800/50 opacity-50'}`}>
@@ -293,11 +296,11 @@ export default function StudentOrder() {
                                             <p className="text-2xl font-black text-slate-100 tracking-tighter">Rs. {totalPrice}/=</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex flex-col gap-1 mb-4">
                                         <label className="text-xs text-slate-500 uppercase font-bold tracking-widest">Select Pickup Time ✨</label>
                                         {availableSlots.length > 0 ? (
-                                            <select 
+                                            <select
                                                 className="bg-slate-900 border border-slate-700 text-sm font-bold text-emerald-400 rounded-lg p-3 outline-none focus:border-emerald-500 shadow-inner"
                                                 value={selectedSlot ? JSON.stringify(selectedSlot) : ''}
                                                 onChange={(e) => {

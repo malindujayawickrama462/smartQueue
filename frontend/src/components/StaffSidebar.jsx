@@ -12,6 +12,7 @@ export default function StaffSidebar() {
         { path: "/kitchen/pos", label: "Point of Sale", icon: "🛒" },
         { path: "/kitchen/history", label: "Order History", icon: "📜" },
         { path: "/kitchen/analytics", label: "Sales Analytics", icon: "📊" },
+        { path: "/kitchen/complaints", label: "Complaints", icon: "🚨" },
     ];
 
     return (
