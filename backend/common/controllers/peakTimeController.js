@@ -13,15 +13,26 @@ export const getPeakTimeData = async (req, res) => {
     });
 
     const peakStatus = hourCounts.map((count) => {
-      if (count >= 40) return "High";
-      if (count >= 20) return "Medium";
+      if (count >= 3) return "High";
+      if (count >= 2) return "Medium";
       return "Low";
     });
 
     const currentHour = new Date().getHours();
     const currentStatus = peakStatus[currentHour];
-    const minCount = Math.min(...hourCounts);
-    const suggestedHourIndex = hourCounts.indexOf(minCount);
+    
+    let suggestedHourIndex = currentHour;
+    let minFutureCount = Infinity;
+    for (let i = currentHour; i < 24; i++) {
+        if (peakStatus[i] === "Low") {
+            suggestedHourIndex = i;
+            break;
+        }
+        if (hourCounts[i] < minFutureCount) {
+            minFutureCount = hourCounts[i];
+            suggestedHourIndex = i;
+        }
+    }
 
     res.json({
       hourCounts, peakStatus, currentStatus, currentHour,

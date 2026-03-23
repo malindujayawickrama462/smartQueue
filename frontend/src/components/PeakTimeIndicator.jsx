@@ -1,16 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { getPeakTimeData } from '../api/peakTimeApi';
+import React from 'react';
 
-export default function PeakTimeIndicator({ canteenId }) {
-    const [peakData, setPeakData] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (canteenId) {
-            getPeakTimeData(canteenId).then(setPeakData).catch(() => {}).finally(() => setLoading(false));
-        }
-    }, [canteenId]);
-
+export default function PeakTimeIndicator({ peakData, loading }) {
     if (loading) return <div className="animate-pulse bg-slate-900/50 p-4 rounded-xl border border-slate-800/50"><div className="h-4 bg-slate-800 rounded w-1/3 mb-2"></div></div>;
     if (!peakData) return null;
 

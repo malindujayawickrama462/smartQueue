@@ -42,8 +42,11 @@ export const getCanteenOrders = async (canteenID) => {
     return res.json();
 };
 
-export const getAvailableSlots = async (canteenID) => {
-    const res = await fetch(`${API_URL}/canteen/${canteenID}/slots`, {
+export const getAvailableSlots = async (canteenID, startTime) => {
+    let url = `${API_URL}/canteen/${canteenID}/slots`;
+    if (startTime) url += `?startTime=${startTime}`;
+    
+    const res = await fetch(url, {
         headers: {
             "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
         }
