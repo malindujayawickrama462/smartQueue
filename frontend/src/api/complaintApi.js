@@ -27,3 +27,9 @@ export const updateComplaintStatus = async (id, status, adminReply) => {
     if (!res.ok) throw new Error((await res.json()).message || "Failed");
     return res.json();
 };
+
+export const deleteComplaint = async (id) => {
+    const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: getHeaders() });
+    if (!res.ok) throw new Error((await res.json()).message || "Failed");
+    return res.json();
+};

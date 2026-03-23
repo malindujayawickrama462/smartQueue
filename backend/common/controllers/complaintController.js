@@ -43,3 +43,12 @@ export const updateComplaintStatus = async (req, res) => {
         res.status(200).json({ message: "Updated successfully", complaint });
     } catch (err) { res.status(500).json({ message: err.message }); }
 };
+
+export const deleteComplaint = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const complaint = await Complaint.findByIdAndDelete(id);
+        if (!complaint) return res.status(404).json({ message: "Complaint not found" });
+        res.status(200).json({ message: "Complaint deleted successfully" });
+    } catch (err) { res.status(500).json({ message: err.message }); }
+};
