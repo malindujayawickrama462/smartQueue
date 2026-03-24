@@ -5,7 +5,9 @@ import {
     deleteFoodItem,
     getAllFoodItems,
     getFoodItemsByCategory,
-    setItemAvailability
+    setItemAvailability,
+    getFoodItemImage,
+    getAllFoodItemsWithImages
 } from "../controllers/foodController.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { authorize } from "../middleware/authorize.js";
@@ -14,6 +16,8 @@ const foodRouter = express.Router();
 
 // Publicly accessible for authenticated users (Students & Staff)
 foodRouter.get("/all/:canteenId", authenticate, getAllFoodItems);
+foodRouter.get("/with-images/:canteenId", authenticate, getAllFoodItemsWithImages);
+foodRouter.get("/:id/image", getFoodItemImage); // No auth - allow direct image access
 foodRouter.get("/category/:canteenId/:category", authenticate, getFoodItemsByCategory);
 
 // Staff and Admin routes for Menu Management
