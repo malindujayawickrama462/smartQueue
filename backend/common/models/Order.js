@@ -23,7 +23,10 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     items: [{
-        // In a full system, this would reference a MenuItem. For now, we can store simple object representations or strings to fulfill the request requirements.
+        foodItem: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "fooditem"
+        },
         name: { type: String, required: true },
         quantity: { type: Number, required: true, default: 1 },
         price: { type: Number, required: true }
@@ -43,8 +46,8 @@ const orderSchema = new mongoose.Schema({
         default: 'Pending'
     },
     paymentMethod: {
-        type: String, // 'Card' or 'Cash'
-        enum: ['Card', 'Cash'],
+        type: String, // 'Card', 'Cash', 'Wallet'
+        enum: ['Card', 'Cash', 'Wallet'],
         default: 'Cash'
     },
     status: {

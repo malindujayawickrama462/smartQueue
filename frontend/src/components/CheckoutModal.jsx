@@ -66,12 +66,65 @@ export default function CheckoutModal({ amount, onCancel, onSuccess }) {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
                 <div className="p-6 md:p-8 space-y-6">
-                    <div className="text-center space-y-2">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-800 mb-2">
-                            <span className="text-xl">💳</span>
-                        </div>
+                    <div className="text-center space-y-1 mb-2">
                         <h2 className="text-2xl font-black text-slate-100 tracking-tight">Secure Checkout</h2>
                         <p className="text-slate-400 font-medium text-sm">Amount due: <strong className="text-indigo-400 text-lg">LKR {amount.toFixed(2)}</strong></p>
+                    </div>
+
+                    {/* Virtual Credit Card */}
+                    <div className="w-full h-48 rounded-2xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-800 p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl shadow-indigo-500/20 border border-slate-700/50 mb-6 transition-all duration-500 ease-in-out transformer hover:scale-[1.02]">
+                        {/* Background designs */}
+                        <div className="absolute top-[-50%] right-[-20%] w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute bottom-[-50%] left-[-20%] w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                        
+                        <div className="flex justify-between items-start z-10">
+                            {/* Chip */}
+                            <div className="w-11 h-8 rounded-md bg-gradient-to-br from-amber-200 to-amber-500 flex items-center justify-center opacity-90 overflow-hidden relative shadow-sm">
+                                <div className="absolute inset-0 border border-amber-700/30 rounded-md"></div>
+                                <div className="w-full h-px bg-amber-700/30 absolute top-1/4"></div>
+                                <div className="w-full h-px bg-amber-700/30 absolute top-2/4"></div>
+                                <div className="w-full h-px bg-amber-700/30 absolute top-3/4"></div>
+                                <div className="w-px h-full bg-amber-700/30 absolute left-1/3"></div>
+                                <div className="w-px h-full bg-amber-700/30 absolute right-1/3"></div>
+                                <div className="w-4 h-3 rounded-full border border-amber-700/30 absolute"></div>
+                            </div>
+                            
+                            {/* Network Logo */}
+                            <div className="text-white/80 font-black italic tracking-widest text-xl drop-shadow-md">
+                                {cardNumber.startsWith('4') ? 'VISA' : 
+                                 (cardNumber.startsWith('5') ? 'MASTERCARD' : 
+                                 (cardNumber.startsWith('3') ? 'AMEX' : 'BANK'))}
+                            </div>
+                        </div>
+                        
+                        <div className="z-10 space-y-4">
+                            {/* Card Number */}
+                            <div className="text-2xl md:text-[22px] tracking-[0.16em] text-white font-mono min-h-[32px] drop-shadow-md flex justify-between">
+                                {cardNumber ? (
+                                    <span>{cardNumber}</span>
+                                ) : (
+                                    <span className="text-slate-500/50">•••• •••• •••• ••••</span>
+                                )}
+                            </div>
+                            
+                            <div className="flex justify-between items-end">
+                                {/* Cardholder Name */}
+                                <div className="flex-1 overflow-hidden pr-4">
+                                    <p className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5">Cardholder Name</p>
+                                    <p className="text-sm text-white font-bold uppercase tracking-widest truncate">
+                                        {name || 'YOUR NAME'}
+                                    </p>
+                                </div>
+                                
+                                {/* Expiry */}
+                                <div className="text-right">
+                                    <p className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5">Valid Thru</p>
+                                    <p className="text-sm text-white font-bold font-mono tracking-widest">
+                                        {expiry || 'MM/YY'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {error && (

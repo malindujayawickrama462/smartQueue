@@ -47,8 +47,15 @@ export default function UserInvoices() {
                     {invoices.map(inv => (
                         <div key={inv._id} className="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-slate-700 transition group">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-200 group-hover:text-emerald-400 transition">{inv.invoiceID}</h3>
-                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">{inv.canteen?.name} • {new Date(inv.createdAt).toLocaleDateString()}</p>
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-lg font-bold text-slate-200 group-hover:text-emerald-400 transition">{inv.invoiceID}</h3>
+                                    {(inv.order?.orderToken?.startsWith('SQ-') || inv.order?.orderToken?.startsWith('POS-')) && (
+                                        <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 text-xs font-black tracking-widest border border-amber-500/20">
+                                            {inv.order.orderToken}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mt-1">{inv.canteen?.name} • {new Date(inv.createdAt).toLocaleDateString()}</p>
                             </div>
                             <div className="flex items-center gap-6 w-full md:w-auto justify-between">
                                 <div className="text-right">

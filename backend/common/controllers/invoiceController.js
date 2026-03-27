@@ -70,7 +70,7 @@ export const getInvoice = async (req, res) => {
         const { invoiceId } = req.params;
         const invoice = await Invoice.findById(invoiceId)
             .populate('canteen', 'name location')
-            .populate('order', 'orderID timeSlot')
+            .populate('order', 'orderID timeSlot orderToken')
             .populate('student', 'name userID email');
 
         if (!invoice) return res.status(404).json({ message: "Invoice not found" });
@@ -91,7 +91,7 @@ export const getUserInvoices = async (req, res) => {
         const studentId = req.userId;
         const invoices = await Invoice.find({ student: studentId })
             .populate('canteen', 'name')
-            .populate('order', 'orderID timeSlot status')
+            .populate('order', 'orderID timeSlot status orderToken')
             .sort({ createdAt: -1 });
 
         res.status(200).json({ invoices });

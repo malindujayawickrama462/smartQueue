@@ -87,3 +87,19 @@ export const deleteFoodItem = async (id) => {
     }
     return res.json();
 };
+
+export const addReview = async (foodItemId, reviewData) => {
+    const res = await fetch(`${API_URL}/${foodItemId}/reviews`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        },
+        body: JSON.stringify(reviewData)
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to submit review");
+    }
+    return res.json();
+};

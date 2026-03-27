@@ -10,7 +10,7 @@ export default function AdminAnalytics() {
     topItems: [],
   });
   const [canteens, setCanteens] = useState([]);
-  
+
   // Filtering States
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -65,9 +65,9 @@ export default function AdminAnalytics() {
     setSelectedCanteen('all');
     // Fetch immediately after clearing
     setTimeout(() => {
-       getGlobalAnalytics({ startDate: '', endDate: '', canteenID: 'all' })
-         .then(setData)
-         .catch(err => setError(err.message));
+      getGlobalAnalytics({ startDate: '', endDate: '', canteenID: 'all' })
+        .then(setData)
+        .catch(err => setError(err.message));
     }, 0);
   };
 
@@ -103,17 +103,17 @@ export default function AdminAnalytics() {
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="w-full md:w-1/4 space-y-1.5">
             <label className="block text-xs font-bold tracking-wider text-slate-400 uppercase">From Date</label>
-            <input 
+            <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="w-full rounded-xl border border-slate-700/80 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-purple-500 shadow-inner [color-scheme:dark]"
             />
           </div>
-          
+
           <div className="w-full md:w-1/4 space-y-1.5">
             <label className="block text-xs font-bold tracking-wider text-slate-400 uppercase">To Date</label>
-            <input 
+            <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -170,10 +170,10 @@ export default function AdminAnalytics() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
             {loading && (
               <div className="absolute inset-0 z-20 bg-slate-950/40 backdrop-blur-[1px] rounded-2xl flex items-center justify-center">
-                 <svg className="animate-spin h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24">
-                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
+                <svg className="animate-spin h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
               </div>
             )}
             <div className="group relative overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900/40 p-6 shadow-xl shadow-purple-500/10 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:border-purple-500/50">

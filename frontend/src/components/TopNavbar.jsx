@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
+import NotificationBell from './NotificationBell';
+import { getWalletInfo } from '../api/walletApi';
+import { useNavigate } from 'react-router-dom';
 
 export default function TopNavbar() {
   const { user, logout } = useAuth();
-  
+  const nav = useNavigate();
+  const [wallet, setWallet] = useState(null);
+
+  useEffect(() => {
+    if (user && (user.role === 'student' || user.role === 'user')) {
+      getWalletInfo().then(setWallet).catch(console.error);
+    }
+  }, [user]);
+
   if (!user) return null;
 
   return (
@@ -21,18 +32,29 @@ export default function TopNavbar() {
           </p>
         </div>
       </div>
-      
-      <div className="flex items-center gap-5">
-        <button className="relative text-slate-400 hover:text-white transition-colors" title="Notifications">
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          <span className="absolute top-0 right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-slate-900 shadow-sm border border-red-400"></span>
-        </button>
-        
+
+      <div className="flex items-center gap-5 border-l border-slate-800 pl-5 ml-auto">
+        {wallet && (
+          <div 
+            onClick={() => nav('/wallet')}
+            className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 cursor-pointer hover:border-emerald-500/50 transition-colors"
+          >
+            <div className="text-right">
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none">Wallet</p>
+              <p className="text-sm font-black text-emerald-400">LKR {wallet.walletBalance?.toFixed(2) || '0.00'}</p>
+            </div>
+            <div className="h-6 w-px bg-slate-800 mx-1"></div>
+            <div className="text-left">
+              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none">Points</p>
+              <p className="text-sm font-black text-amber-400 flex items-center gap-1">⭐ {wallet.loyaltyPoints || 0}</p>
+            </div>
+          </div>
+        )}
+        <NotificationBell />
+
         <div className="h-6 w-px bg-slate-800 mx-1"></div>
-        
-        <button 
+
+        <button
           onClick={logout}
           className="text-sm font-bold text-slate-400 hover:text-white transition-colors flex flex-row items-center gap-1.5"
           title="Logout"

@@ -20,8 +20,21 @@ export default function ManageMenu() {
         price: '',
         category: '',
         description: '',
-        image: ''
+        image: '',
+        dietaryTags: []
     });
+
+    const AVAILABLE_TAGS = ['Vegetarian', 'Vegan', 'Halal', 'Spicy', 'Contains Nuts'];
+
+    const handleTagToggle = (tag) => {
+        setFormData(prev => {
+            if (prev.dietaryTags.includes(tag)) {
+                return { ...prev, dietaryTags: prev.dietaryTags.filter(t => t !== tag) };
+            } else {
+                return { ...prev, dietaryTags: [...prev.dietaryTags, tag] };
+            }
+        });
+    };
 
     useEffect(() => {
         const fetchStaffCanteen = async () => {
@@ -92,7 +105,8 @@ export default function ManageMenu() {
             price: item.price,
             category: item.category,
             description: item.description || '',
-            image: item.image || ''
+            image: item.image || '',
+            dietaryTags: item.dietaryTags || []
         });
         setShowForm(true);
     };
@@ -120,7 +134,7 @@ export default function ManageMenu() {
     const closeForm = () => {
         setShowForm(false);
         setEditItem(null);
-        setFormData({ name: '', price: '', category: '', description: '', image: '' });
+        setFormData({ name: '', price: '', category: '', description: '', image: '', dietaryTags: [] });
     };
 
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading Menu...</div>;
@@ -205,6 +219,22 @@ export default function ManageMenu() {
                                         />
                                     </div>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dietary & Allergen Tags</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {AVAILABLE_TAGS.map(tag => (
+                                            <label key={tag} className={`cursor-pointer px-3 py-1 rounded-full border text-xs font-bold transition-all ${formData.dietaryTags.includes(tag) ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    className="hidden"
+                                                    checked={formData.dietaryTags.includes(tag)}
+                                                    onChange={() => handleTagToggle(tag)}
+                                                />
+                                                {tag}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</label>
                                     <textarea
@@ -239,6 +269,25 @@ export default function ManageMenu() {
                                     </button>
                                 </div>
                                 <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px]">{item.description || 'No description provided.'}</p>
+
+                                {item.dietaryTags && item.dietaryTags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {item.dietaryTags.map(tag => (
+                                            <span key={tag} className="text-[9px] uppercase tracking-wider font-bold bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {item.totalRatings > 0 && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <svg className="w-3.5 h-3.5 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                        <span className="text-xs font-bold text-slate-300">{item.averageRating} <span className="text-slate-500 font-medium">({item.totalRatings})</span></span>
+                                    </div>
+                                )}
 
                                 <div className="flex gap-2 pt-4 border-t border-slate-800">
                                     <button

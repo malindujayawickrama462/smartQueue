@@ -9,6 +9,8 @@ import orderRouter from "./common/Routes/orderRoutes.js";
 import foodRouter from "./common/Routes/foodRoutes.js";
 import invoiceRouter from "./common/Routes/invoiceRoutes.js";
 import paymentRouter from "./common/Routes/paymentRoutes.js";
+import notificationRouter from "./common/Routes/notificationRoutes.js";
+import walletRouter from "./common/Routes/walletRoutes.js";
 import { initSocket } from "./common/services/socketService.js";
 import { initCronJobs } from "./common/services/cronService.js";
 
@@ -26,6 +28,8 @@ app.use("/api/order", orderRouter);
 app.use("/api/food", foodRouter);
 app.use("/api/invoice", invoiceRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/wallet", walletRouter);
 
 const httpServer = createServer(app);
 initSocket(httpServer);

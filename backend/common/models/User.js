@@ -23,6 +23,14 @@ const userSchema = new mongoose.Schema({
         type:String,
         enum:["admin","student","staff"],
         default:"admin"
+    },
+    walletBalance: {
+        type: Number,
+        default: 0
+    },
+    loyaltyPoints: {
+        type: Number,
+        default: 0
     }
 },
 {
