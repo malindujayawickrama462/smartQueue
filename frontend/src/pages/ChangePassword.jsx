@@ -21,6 +21,14 @@ export default function ChangePassword() {
       setError('Both fields are required.');
       return;
     }
+    if (newPassword.length < 6) {
+      setError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setError('New password cannot be the same as the current password.');
+      return;
+    }
     setSaving(true);
     try {
       const res = await changePassword({ currentPassword, newPassword });
@@ -66,6 +74,7 @@ export default function ChangePassword() {
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
+                required
                 className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
               />
             </div>
@@ -79,6 +88,8 @@ export default function ChangePassword() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={6}
                 className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
               />
             </div>

@@ -13,8 +13,24 @@ export default function CheckoutModal({ amount, onCancel, onSuccess }) {
         e.preventDefault();
         setError('');
 
+        if (!name.trim()) {
+            setError("Please enter the cardholder's name.");
+            return;
+        }
+        if (name.trim().length < 2) {
+            setError("Cardholder name must be at least 2 characters.");
+            return;
+        }
         if (cardNumber.replace(/\s/g, '').length !== 16) {
             setError("Please enter a valid 16-digit card number.");
+            return;
+        }
+        if (expiry.replace(/\D/g, '').length !== 4) {
+            setError("Please enter a valid expiry date (MM/YY).");
+            return;
+        }
+        if (cvv.length !== 3) {
+            setError("Please enter a valid 3-digit CVV.");
             return;
         }
 
@@ -70,6 +86,8 @@ export default function CheckoutModal({ amount, onCancel, onSuccess }) {
                             <input
                                 required
                                 type="text"
+                                minLength={2}
+                                maxLength={50}
                                 value={name}
                                 onChange={(e) => setName(e.target.value.toUpperCase())}
                                 className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500 font-medium placeholder:text-slate-600 uppercase"

@@ -15,6 +15,7 @@ import KitchenOrderStatus from './pages/KitchenOrderStatus';
 import ManageMenu from './pages/ManageMenu';
 import InvoiceView from './pages/InvoiceView';
 import UserInvoices from './pages/UserInvoices';
+import Complaints from './pages/Complaints';
 import StaffLayout from './layouts/StaffLayout';
 import StudentLayout from './layouts/StudentLayout';
 import StaffAnalytics from './pages/StaffAnalytics';
@@ -31,7 +32,7 @@ export default function App() {
 
       <Route element={<RequireAuth />}>
         <Route path="/me" element={<Me />} />
-        
+
         {/* Student Routes inside Sidebar Layout */}
         <Route element={<StudentLayout />}>
           <Route path="/home" element={<UserHome />} />
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/order/:canteenId" element={<StudentOrder />} />
           <Route path="/invoice/:invoiceId" element={<InvoiceView />} />
           <Route path="/invoices" element={<UserInvoices />} />
+          <Route path="/complaints" element={<Complaints />} />
         </Route>
 
         {/* Staff Routes inside Sidebar Layout */}
@@ -51,6 +53,7 @@ export default function App() {
           <Route path="pos" element={<StaffPOS />} />
           <Route path="analytics" element={<StaffAnalytics />} />
           <Route path="history" element={<StaffOrderHistory />} />
+          <Route path="complaints" element={<Complaints />} />
         </Route>
       </Route>
 

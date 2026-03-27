@@ -52,6 +52,10 @@ export default function AdminAnalytics() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApplyFilters = () => {
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setError('Start date cannot be after end date.');
+      return;
+    }
     fetchAnalytics();
   };
 

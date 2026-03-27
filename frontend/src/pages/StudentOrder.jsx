@@ -5,7 +5,9 @@ import CheckoutModal from '../components/CheckoutModal';
 import { placeOrder, getAvailableSlots } from '../api/orderApi';
 import { generateInvoice } from '../api/invoiceApi';
 import { getAllFoodItems } from '../api/foodApi';
+import { getPeakTimeData } from '../api/peakTimeApi';
 import { useAuth } from '../auth/AuthContext';
+import PeakTimeIndicator from '../components/PeakTimeIndicator';
 
 export default function StudentOrder() {
     const { canteenId } = useParams();
@@ -20,22 +22,44 @@ export default function StudentOrder() {
     const [showCheckout, setShowCheckout] = useState(false);
     const [availableSlots, setAvailableSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const [peakData, setPeakData] = useState(null);
+    const [peakLoading, setPeakLoading] = useState(true);
 
     useEffect(() => {
         const fetchMenuAndSlots = async () => {
             try {
                 const data = await getAllFoodItems(canteenId);
                 setMenu(data.items);
-                
+
+                let pData = null;
+                try {
+                    setPeakLoading(true);
+                    pData = await getPeakTimeData(canteenId);
+                    setPeakData(pData);
+                } catch (e) {
+                    console.error("Failed to load peak data", e);
+                } finally {
+                    setPeakLoading(false);
+                }
+
                 try {
                     const slotData = await getAvailableSlots(canteenId);
-                    setAvailableSlots(slotData.slots || []);
-                    if (slotData.slots && slotData.slots.length > 0) {
-                        setSelectedSlot(slotData.slots[0]);
+                    const slots = slotData.slots || [];
+                    setAvailableSlots(slots);
+                    
+                    if (slots.length > 0) {
+                        let initialSlot = slots[0];
+                        // If Medium traffic, automatically select the first slot that is NOT before the suggested time
+                        if (pData && pData.currentStatus === 'Medium' && pData.suggestedHour) {
+                            const validSlot = slots.find(s => s.startTime >= pData.suggestedHour);
+                            if (validSlot) initialSlot = validSlot;
+                        }
+                        setSelectedSlot(initialSlot);
                     }
                 } catch (e) {
                     console.error("Failed to load time slots", e);
                 }
+
             } catch (err) {
                 setError(err.message);
             }
@@ -120,9 +144,16 @@ export default function StudentOrder() {
     };
 
     const handleCheckoutDecision = (method) => {
-        if (cart.length === 0) return;
+        if (cart.length === 0) {
+            setError("Your cart is empty.");
+            return;
+        }
         if (!selectedSlot) {
             setError("Please select a pickup time slot first.");
+            return;
+        }
+        if (totalPrice <= 0) {
+            setError("Total amount must be greater than zero.");
             return;
         }
         if (method === 'Card') {
@@ -236,6 +267,8 @@ export default function StudentOrder() {
                         <button onClick={() => nav('/canteens')} className="text-sm text-slate-400 hover:text-white">Change Canteen</button>
                     </div>
 
+                    <PeakTimeIndicator peakData={peakData} loading={peakLoading} />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {menu.map(item => (
                             <div key={item._id} className={`p-4 rounded-2xl bg-slate-900/40 border transition group ${item.availability ? 'border-slate-800 hover:border-slate-700' : 'border-slate-800/50 opacity-50'}`}>
@@ -293,27 +326,42 @@ export default function StudentOrder() {
                                             <p className="text-2xl font-black text-slate-100 tracking-tighter">Rs. {totalPrice}/=</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex flex-col gap-1 mb-4">
                                         <label className="text-xs text-slate-500 uppercase font-bold tracking-widest">Select Pickup Time ✨</label>
-                                        {availableSlots.length > 0 ? (
-                                            <select 
-                                                className="bg-slate-900 border border-slate-700 text-sm font-bold text-emerald-400 rounded-lg p-3 outline-none focus:border-emerald-500 shadow-inner"
-                                                value={selectedSlot ? JSON.stringify(selectedSlot) : ''}
-                                                onChange={(e) => {
-                                                    setError('');
-                                                    setSelectedSlot(JSON.parse(e.target.value));
-                                                }}
-                                            >
-                                                {availableSlots.map((slot, idx) => (
-                                                    <option key={idx} value={JSON.stringify(slot)}>
-                                                        {slot.startTime} - {slot.endTime}
-                                                    </option>
-                                                ))}
-                                            </select>
+
+                                        {peakData && peakData.currentStatus === 'High' ? (
+                                            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-bold text-center">
+                                                Traffic is High. Pickup selection is completely disabled right now. Please try again later.
+                                            </div>
+                                        ) : availableSlots.length > 0 ? (
+                                            <>
+                                                {peakData && peakData.currentStatus === 'Medium' && (
+                                                    <div className="mb-2 p-2 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded text-[10px] font-bold uppercase tracking-wider text-center">
+                                                        Traffic is Medium. Selectable slots start from {peakData.suggestedHour}.
+                                                    </div>
+                                                )}
+                                                <select
+                                                    className="bg-slate-900 border border-slate-700 text-sm font-bold text-emerald-400 rounded-lg p-3 outline-none focus:border-emerald-500 shadow-inner"
+                                                    value={selectedSlot ? JSON.stringify(selectedSlot) : ''}
+                                                    onChange={(e) => {
+                                                        setError('');
+                                                        setSelectedSlot(JSON.parse(e.target.value));
+                                                    }}
+                                                >
+                                                {availableSlots.map((slot, idx) => {
+                                                        const isMediumTrafficRestricted = peakData && peakData.currentStatus === 'Medium' && slot.startTime < peakData.suggestedHour;
+                                                        return (
+                                                            <option key={idx} value={JSON.stringify(slot)} disabled={isMediumTrafficRestricted}>
+                                                                {slot.startTime} - {slot.endTime} {isMediumTrafficRestricted ? '(Disabled - Peak Traffic)' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </>
                                         ) : (
                                             <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-xs font-bold text-center">
-                                                Canteen is currently at Full Capacity for orders tonight.
+                                                Canteen is currently at Full Capacity for orders.
                                             </div>
                                         )}
                                     </div>
@@ -321,14 +369,14 @@ export default function StudentOrder() {
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => handleCheckoutDecision('Cash')}
-                                            disabled={loading || availableSlots.length === 0}
+                                            disabled={loading || availableSlots.length === 0 || (peakData && peakData.currentStatus === 'High')}
                                             className="rounded-xl border border-slate-700 bg-slate-900 px-2 py-3 text-xs font-bold text-slate-300 hover:bg-slate-800 transition-all disabled:opacity-50"
                                         >
                                             {loading ? 'Wait...' : 'Pay at Counter'}
                                         </button>
                                         <button
                                             onClick={() => handleCheckoutDecision('Card')}
-                                            disabled={loading || availableSlots.length === 0}
+                                            disabled={loading || availableSlots.length === 0 || (peakData && peakData.currentStatus === 'High')}
                                             className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-2 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-1"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>

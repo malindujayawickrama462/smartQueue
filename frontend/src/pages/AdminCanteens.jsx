@@ -86,6 +86,15 @@ export default function AdminCanteens({ isSidebarMode = false }) {
       setError('Name, location, and capacity are required.');
       return;
     }
+    const capNum = parseInt(capacity);
+    if (isNaN(capNum) || capNum < 1 || capNum > 10000) {
+      setError('Capacity must be a valid number between 1 and 10000.');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError('Canteen name must be at least 2 characters.');
+      return;
+    }
     setCreating(true);
     try {
       const data = await createCanteen({
@@ -197,6 +206,9 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={50}
                   className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
                   placeholder="e.g., Main Canteen"
                 />
@@ -210,6 +222,9 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={100}
                   className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
                   placeholder="e.g., Block A, Ground Floor"
                 />
@@ -225,6 +240,9 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                     type="number"
                     value={capacity}
                     onChange={(e) => setCapacity(e.target.value)}
+                    required
+                    min={1}
+                    max={10000}
                     className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
                     placeholder="e.g., 100"
                   />
@@ -239,6 +257,7 @@ export default function AdminCanteens({ isSidebarMode = false }) {
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  maxLength={500}
                   className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
                   placeholder="e.g., Main cafeteria with diverse food options"
                   rows="2"

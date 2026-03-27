@@ -16,8 +16,21 @@ export default function AdminRegister() {
     e.preventDefault();
     setError('');
     setDone('');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!name.trim() || !email.trim() || !password) {
       setError('All fields are required.');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters long.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
     setLoading(true);
@@ -61,6 +74,9 @@ export default function AdminRegister() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                required
+                minLength={2}
+                maxLength={50}
                 className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
               />
             </div>
@@ -74,6 +90,7 @@ export default function AdminRegister() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
                 className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
               />
             </div>
@@ -87,6 +104,8 @@ export default function AdminRegister() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
                 className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 transition"
               />
             </div>

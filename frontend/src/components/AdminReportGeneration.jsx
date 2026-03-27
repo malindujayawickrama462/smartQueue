@@ -40,6 +40,10 @@ export default function AdminReportGeneration() {
   }, []);
 
   const handlePreview = async () => {
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      setError('Start date cannot be after end date.');
+      return;
+    }
     try {
       setLoading(true);
       setError('');

@@ -9,6 +9,7 @@ export default function AdminSidebar({ activeSection, setActiveSection }) {
     { id: 'students', label: 'Student Management', icon: '👨‍🎓' },
     { id: 'staff', label: 'Staff Management', icon: '👨‍💻' },
     { id: 'canteens', label: 'Canteen Management', icon: '🍽️' },
+    { id: 'complaints', label: 'Complaints', icon: '🚨' },
   ];
 
   return (
@@ -26,8 +27,8 @@ export default function AdminSidebar({ activeSection, setActiveSection }) {
             key={section.id}
             onClick={() => setActiveSection(section.id)}
             className={`w-full text-left px-4 py-3.5 rounded-xl transition-all duration-300 flex items-center gap-4 relative overflow-hidden ${activeSection === section.id
-                ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold shadow-lg shadow-sky-500/25 scale-[1.02]'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 hover:scale-[1.01] border border-transparent hover:border-slate-700/50'
+              ? 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold shadow-lg shadow-sky-500/25 scale-[1.02]'
+              : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 hover:scale-[1.01] border border-transparent hover:border-slate-700/50'
               }`}
           >
             {activeSection === section.id && (
