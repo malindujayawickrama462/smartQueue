@@ -13,6 +13,19 @@ export const getAllFoodItems = async (canteenId) => {
     return res.json();
 };
 
+export const getAllFoodItemsWithImages = async (canteenId) => {
+    const res = await fetch(`${API_URL}/with-images/${canteenId}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        }
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to fetch food items with images");
+    }
+    return res.json();
+};
+
 export const getFoodItemsByCategory = async (canteenId, category) => {
     const res = await fetch(`${API_URL}/category/${canteenId}/${category}`, {
         headers: {
@@ -102,16 +115,4 @@ export const fileToBase64 = (file) => {
     });
 };
 
-// Get food items with image URLs
-export const getAllFoodItemsWithImages = async (canteenId) => {
-    const res = await fetch(`${API_URL}/with-images/${canteenId}`, {
-        headers: {
-            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
-        }
-    });
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to fetch food items with images");
-    }
-    return res.json();
-};
+

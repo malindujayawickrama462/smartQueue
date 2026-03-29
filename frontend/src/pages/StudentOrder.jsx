@@ -4,7 +4,7 @@ import { Card } from '../components/Card';
 import CheckoutModal from '../components/CheckoutModal';
 import { placeOrder, getAvailableSlots } from '../api/orderApi';
 import { generateInvoice } from '../api/invoiceApi';
-import { getAllFoodItems } from '../api/foodApi';
+import { getAllFoodItemsWithImages } from '../api/foodApi';
 import { getPeakTimeData } from '../api/peakTimeApi';
 import { useAuth } from '../auth/AuthContext';
 import PeakTimeIndicator from '../components/PeakTimeIndicator';
@@ -28,7 +28,7 @@ export default function StudentOrder() {
     useEffect(() => {
         const fetchMenuAndSlots = async () => {
             try {
-                const data = await getAllFoodItems(canteenId);
+                const data = await getAllFoodItemsWithImages(canteenId);
                 setMenu(data.items);
 
                 let pData = null;
@@ -271,20 +271,35 @@ export default function StudentOrder() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {menu.map(item => (
-                            <div key={item._id} className={`p-4 rounded-2xl bg-slate-900/40 border transition group ${item.availability ? 'border-slate-800 hover:border-slate-700' : 'border-slate-800/50 opacity-50'}`}>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="font-bold text-slate-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{item.name}</p>
-                                        <p className="text-lg font-black text-slate-400">Rs. {item.price}/=</p>
-                                        {!item.availability && <p className="text-xs text-red-400 font-bold uppercase mt-1">Out of Stock</p>}
+                            <div key={item._id} className={`overflow-hidden rounded-2xl bg-slate-900/40 border transition group ${item.availability ? 'border-slate-800 hover:border-slate-700' : 'border-slate-800/50 opacity-50'}`}>
+                                {item.imageUrl && (
+                                    <div className="h-40 bg-slate-800 overflow-hidden">
+                                        <img
+                                            src={item.imageUrl}
+                                            alt={item.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                            }}
+                                        />
                                     </div>
-                                    <button
-                                        onClick={() => addToCart(item)}
-                                        disabled={!item.availability}
-                                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        +
-                                    </button>
+                                )}
+                                <div className="p-4">
+                                    <div className="flex justify-between items-start gap-3">
+                                        <div className="flex-1">
+                                            <p className="font-bold text-slate-100 group-hover:text-emerald-400 transition-colors uppercase tracking-tight text-sm">{item.name}</p>
+                                            <p className="text-lg font-black text-slate-400 mt-1">Rs. {item.price}/=</p>
+                                            {item.description && <p className="text-xs text-slate-400 mt-2 line-clamp-2">{item.description}</p>}
+                                            {!item.availability && <p className="text-xs text-red-400 font-bold uppercase mt-2">Out of Stock</p>}
+                                        </div>
+                                        <button
+                                            onClick={() => addToCart(item)}
+                                            disabled={!item.availability}
+                                            className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 mt-1"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
