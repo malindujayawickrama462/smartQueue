@@ -1,5 +1,7 @@
 const API_URL = "/api/food";
 
+// --- GET Requests ---
+
 export const getAllFoodItems = async (canteenId) => {
     const res = await fetch(`${API_URL}/all/${canteenId}`, {
         headers: {
@@ -9,6 +11,19 @@ export const getAllFoodItems = async (canteenId) => {
     if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || "Failed to fetch food items");
+    }
+    return res.json();
+};
+
+export const getAllFoodItemsWithImages = async (canteenId) => {
+    const res = await fetch(`${API_URL}/with-images/${canteenId}`, {
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        }
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to fetch food items with images");
     }
     return res.json();
 };
@@ -25,6 +40,8 @@ export const getFoodItemsByCategory = async (canteenId, category) => {
     }
     return res.json();
 };
+
+// --- POST / PUT / PATCH Requests ---
 
 export const addFoodItem = async (foodData) => {
     const res = await fetch(`${API_URL}/add`, {
@@ -74,48 +91,6 @@ export const setItemAvailability = async (id, availability) => {
     return res.json();
 };
 
-export const deleteFoodItem = async (id) => {
-    const res = await fetch(`${API_URL}/delete/${id}`, {
-        method: "DELETE",
-        headers: {
-            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
-        }
-    });
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to delete food item");
-    }
-    return res.json();
-};
-
-// Helper: Convert file to base64
-export const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            // Extract base64 data without the data URL prefix
-            const base64String = reader.result.split(',')[1];
-            resolve(base64String);
-        };
-        reader.onerror = (error) => reject(error);
-    });
-};
-
-// Get food items with image URLs
-export const getAllFoodItemsWithImages = async (canteenId) => {
-    const res = await fetch(`${API_URL}/with-images/${canteenId}`, {
-        headers: {
-            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
-        }
-    });
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to fetch food items with images");
-    }
-    return res.json();
-};
-
 export const addReview = async (foodItemId, reviewData) => {
     const res = await fetch(`${API_URL}/${foodItemId}/reviews`, {
         method: "POST",
@@ -130,4 +105,34 @@ export const addReview = async (foodItemId, reviewData) => {
         throw new Error(err.message || "Failed to submit review");
     }
     return res.json();
+};
+
+// --- DELETE Requests ---
+
+export const deleteFoodItem = async (id) => {
+    const res = await fetch(`${API_URL}/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        }
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to delete food item");
+    }
+    return res.json();
+};
+
+// --- Helpers ---
+
+export const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+    });
 };

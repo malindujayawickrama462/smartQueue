@@ -139,7 +139,7 @@ export const getAllFoodItemsWithImages = async (req, res) => {
         // Add image URLs
         const itemsWithImageUrls = items.map(item => ({
             ...item.toObject(),
-            imageUrl: item.imageData ? `/api/food/${item._id}/image` : null
+            imageUrl: item.imageType ? `/api/food/${item._id}/image` : null
         }));
 
         res.status(200).json({ items: itemsWithImageUrls });
