@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import Order from "../models/Order.js";
 import { getIO } from "./socketService.js";
+import Notification from "../models/Notification.js";
 
 // Helper to extract minutes distance between target time and now
 const getMinutesDifference = (timeStr, now) => {
@@ -31,15 +32,33 @@ export const initCronJobs = () => {
                 
                 if (diff === 5) {
                     console.log(`[Cron] Triggered: Emitting 5-min-reminder to Student ${order.student}`);
+                    
+                    const message = "Your pickup slot starts in exactly 5 minutes! Please head towards the canteen.";
+                    await Notification.create({
+                        recipient: order.student,
+                        message,
+                        type: "Reminder",
+                        orderId: order.orderID
+                    });
+
                     io.to(order.student.toString()).emit("order-reminder", {
                         orderID: order.orderID,
-                        message: "Your pickup slot starts in exactly 5 minutes! Please head towards the canteen."
+                        message
                     });
                 } else if (diff === 0) {
                     console.log(`[Cron] Triggered: Emitting slot-active alert to Student ${order.student}`);
+                    
+                    const message = "Your time slot is now active! Please approach the counter.";
+                    await Notification.create({
+                        recipient: order.student,
+                        message,
+                        type: "SlotActive",
+                        orderId: order.orderID
+                    });
+
                     io.to(order.student.toString()).emit("slot-active", {
                         orderID: order.orderID,
-                        message: "Your time slot is now active! Please approach the counter."
+                        message
                     });
                 }
             }

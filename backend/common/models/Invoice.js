@@ -50,7 +50,7 @@ const invoiceSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['Card', 'Cash'],
+        enum: ['Card', 'Cash', 'Wallet'],
         default: 'Cash'
     }
 }, {

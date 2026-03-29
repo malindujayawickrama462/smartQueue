@@ -1,5 +1,7 @@
 const API_URL = "/api/food";
 
+// --- GET Requests ---
+
 export const getAllFoodItems = async (canteenId) => {
     const res = await fetch(`${API_URL}/all/${canteenId}`, {
         headers: {
@@ -38,6 +40,8 @@ export const getFoodItemsByCategory = async (canteenId, category) => {
     }
     return res.json();
 };
+
+// --- POST / PUT / PATCH Requests ---
 
 export const addFoodItem = async (foodData) => {
     const res = await fetch(`${API_URL}/add`, {
@@ -87,6 +91,24 @@ export const setItemAvailability = async (id, availability) => {
     return res.json();
 };
 
+export const addReview = async (foodItemId, reviewData) => {
+    const res = await fetch(`${API_URL}/${foodItemId}/reviews`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+        },
+        body: JSON.stringify(reviewData)
+    });
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to submit review");
+    }
+    return res.json();
+};
+
+// --- DELETE Requests ---
+
 export const deleteFoodItem = async (id) => {
     const res = await fetch(`${API_URL}/delete/${id}`, {
         method: "DELETE",
@@ -101,18 +123,16 @@ export const deleteFoodItem = async (id) => {
     return res.json();
 };
 
-// Helper: Convert file to base64
+// --- Helpers ---
+
 export const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
-            // Extract base64 data without the data URL prefix
             const base64String = reader.result.split(',')[1];
             resolve(base64String);
         };
         reader.onerror = (error) => reject(error);
     });
 };
-
-

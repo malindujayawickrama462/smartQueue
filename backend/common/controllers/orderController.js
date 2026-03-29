@@ -4,6 +4,9 @@ import Counter from "../models/Counter.js";
 import Queue from "../models/Queue.js";
 import mongoose from "mongoose";
 import { getIO } from "../services/socketService.js";
+import Notification from "../models/Notification.js";
+import User from "../models/User.js";
+import Transaction from "../models/Transaction.js";
 
 // Helper to calculate next available time slot
 const calculateNextSlot = async (canteenID) => {
@@ -70,12 +73,15 @@ export const getAvailableSlots = async (req, res) => {
         const availableSlots = [];
         const todayStr = currentSlotStart.toISOString().split('T')[0];
 
-        // Generate the next 12 slots (1 hour ahead)
-        for (let i = 0; i < 12; i++) {
+        // Generate the next 48 slots (4 hours ahead) instead of just 1 hour
+        for (let i = 0; i < 48; i++) {
             const startTimeStr = currentSlotStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             const slotEnd = new Date(currentSlotStart.getTime() + slotDuration * 60000);
             const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             
+            // Stop generating slots after 5 PM (17:00) 
+            if (currentSlotStart.getHours() >= 17) break;
+
             const orderCount = await Order.countDocuments({
                 canteen: canteenID,
                 "timeSlot.startTime": startTimeStr,
@@ -102,22 +108,75 @@ export const getAvailableSlots = async (req, res) => {
 
 export const placeOrder = async (req, res) => {
     try {
-        const { canteenID, items, totalPrice, paymentMethod, timeSlot } = req.body;
+        const { canteenID, items, totalPrice, paymentMethod, timeSlot, redeemPoints } = req.body;
         const today = new Date().toISOString().split('T')[0]; // From authenticate middleware
+
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        let finalPrice = totalPrice;
+
+        // Apply point redemption
+        if (redeemPoints && redeemPoints > 0) {
+            if (user.loyaltyPoints < redeemPoints) {
+                return res.status(400).json({ message: "Insufficient loyalty points" });
+            }
+            // 1 point = 1 LKR discount
+            const maxRedeemable = Math.min(finalPrice, user.loyaltyPoints);
+            const actuallyRedeemed = Math.min(redeemPoints, maxRedeemable);
+            
+            finalPrice -= actuallyRedeemed;
+            user.loyaltyPoints -= actuallyRedeemed;
+            
+            // Log point deduction transaction
+            const pointsTx = new Transaction({
+                user: req.userId,
+                amount: actuallyRedeemed,
+                type: 'DEBIT',
+                description: `Redeemed ${actuallyRedeemed} Points`
+            });
+            await pointsTx.save();
+        }
+
+        // Handle Wallet Payment
+        if (paymentMethod === 'Wallet') {
+            if (user.walletBalance < finalPrice) {
+                return res.status(400).json({ message: "Insufficient wallet balance" });
+            }
+            user.walletBalance -= finalPrice;
+        }
 
         const newOrder = new Order({
             student: req.userId,
             canteen: canteenID,
             items,
-            totalPrice,
+            totalPrice: finalPrice, // Final price after points
             timeSlot: timeSlot || undefined,
             date: today,
-            paymentMethod: paymentMethod === 'Card' ? 'Card' : 'Cash',
-            paymentStatus: paymentMethod === 'Card' ? 'Paid' : 'Pending',
+            paymentMethod: ['Card', 'Wallet'].includes(paymentMethod) ? paymentMethod : 'Cash',
+            paymentStatus: ['Card', 'Wallet'].includes(paymentMethod) ? 'Paid' : 'Pending',
             status: "Pending"
         });
 
         await newOrder.save();
+
+        if (paymentMethod === 'Wallet') {
+            const walletTx = new Transaction({
+                user: req.userId,
+                amount: finalPrice,
+                type: 'DEBIT',
+                description: `Paid for Order via Wallet`,
+                order: newOrder._id
+            });
+            await walletTx.save();
+        }
+
+        // Award points (1 point per 100 LKR spent based on original price)
+        const earnedPoints = Math.floor(totalPrice / 100);
+        user.loyaltyPoints += earnedPoints;
+
+        await user.save();
+
         res.status(201).json({ message: "Order placed successfully", order: newOrder });
     } catch (error) {
         console.error("placeOrder Error:", error);
@@ -167,9 +226,31 @@ export const getStudentOrders = async (req, res) => {
     try {
         const studentID = req.userId;
         const orders = await Order.find({ student: studentID })
-            .populate('canteen', 'name location')
+            .populate('canteen', 'name location slotDurationMinutes maxOrdersPerSlot')
             .sort({ createdAt: -1 });
-        res.status(200).json({ orders });
+            
+        // Calculate dynamic wait time for active orders (lite version)
+        const enrichedOrders = await Promise.all(orders.map(async (o) => {
+            const orderObj = o.toObject();
+            if (['Pending', 'Verified', 'Preparing'].includes(o.status)) {
+                // Find how many orders in the same status or earlier are ahead of this one (older createdAt)
+                const queueAhead = await Order.countDocuments({
+                    canteen: o.canteen._id,
+                    status: { $in: ['Verified', 'Preparing'] },
+                    createdAt: { $lt: o.createdAt }
+                });
+                
+                orderObj.queuePosition = queueAhead + 1;
+                // Rough estimate: 2 mins per order ahead + 5 mins baseline
+                orderObj.estimatedWaitTime = (queueAhead * 2) + 5; 
+            } else if (o.status === 'Ready') {
+                orderObj.estimatedWaitTime = 0;
+                orderObj.queuePosition = 0;
+            }
+            return orderObj;
+        }));
+
+        res.status(200).json({ orders: enrichedOrders });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -247,12 +328,42 @@ export const updateOrderStatus = async (req, res) => {
         }
         
         // --- REAL TIME NOTIFICATIONS ---
+        if (updateData.orderToken) {
+            try {
+                const message = `Order Accepted! Your Token Number is ${updateData.orderToken}.`;
+                
+                await Notification.create({
+                    recipient: existingOrder.student,
+                    message,
+                    type: "TokenGenerated",
+                    orderId: existingOrder.orderID
+                });
+
+                const io = getIO();
+                io.to(existingOrder.student.toString()).emit("new-notification", {
+                    orderID: existingOrder.orderID,
+                    message
+                });
+            } catch (err) {
+                console.error("Failed to emit token generation event", err);
+            }
+        }
+
         if (status === 'Ready' && existingOrder.status !== 'Ready') {
             try {
+                const message = "Your order is ready to collect at the counter!";
+                
+                await Notification.create({
+                    recipient: existingOrder.student,
+                    message,
+                    type: "OrderReady",
+                    orderId: existingOrder.orderID
+                });
+
                 const io = getIO();
                 io.to(existingOrder.student.toString()).emit("order-ready", {
                     orderID: existingOrder.orderID,
-                    message: "Your order is ready to collect at the counter!"
+                    message
                 });
             } catch (err) {
                 console.error("Failed to emit order-ready socket event", err);

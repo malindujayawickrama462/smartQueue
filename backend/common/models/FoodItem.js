@@ -38,6 +38,18 @@ const foodItemSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "canteen",
         required: true
+    },
+    dietaryTags: {
+        type: [String],
+        default: []
+    },
+    averageRating: {
+        type: Number,
+        default: 0
+    },
+    totalRatings: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true

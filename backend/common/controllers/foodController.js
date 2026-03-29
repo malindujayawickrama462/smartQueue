@@ -1,9 +1,10 @@
 import FoodItem from "../models/FoodItem.js";
+import Review from "../models/Review.js";
 
 // Add new food item
 export const addFoodItem = async (req, res) => {
     try {
-        const { name, price, category, description, image, imageData, imageType, availability, canteen } = req.body;
+        const { name, price, category, description, image, imageData, imageType, availability, canteen, dietaryTags } = req.body;
 
         const newItem = new FoodItem({
             name,
@@ -15,7 +16,8 @@ export const addFoodItem = async (req, res) => {
             imageType,
             imageSize: imageData ? Buffer.from(imageData, 'base64').length : 0,
             availability: availability !== undefined ? availability : true,
-            canteen
+            canteen,
+            dietaryTags: dietaryTags || []
         });
 
         await newItem.save();
@@ -141,6 +143,33 @@ export const getAllFoodItemsWithImages = async (req, res) => {
         }));
 
         res.status(200).json({ items: itemsWithImageUrls });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Add a review for a food item
+export const addReview = async (req, res) => {
+    try {
+        const { id } = req.params; // food item id
+        const { rating, comment, orderId } = req.body;
+        const userId = req.user.id; // From authenticate middleware
+
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Rating must be between 1 and 5" });
+        }
+
+        const review = new Review({
+            user: userId,
+            foodItem: id,
+            order: orderId, // optional, depends on how strictly we link it
+            rating,
+            comment
+        });
+
+        await review.save(); // Model post-save hook will update the average rating on the food item
+
+        res.status(201).json({ message: "Review added successfully", review });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

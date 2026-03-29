@@ -11,6 +11,8 @@ import invoiceRouter from "./common/Routes/invoiceRoutes.js";
 import paymentRouter from "./common/Routes/paymentRoutes.js";
 import peakTimeRouter from "./common/Routes/peakTime.js";
 import complaintRouter from "./common/Routes/complaintRoutes.js";
+import notificationRouter from "./common/Routes/notificationRoutes.js";
+import walletRouter from "./common/Routes/walletRoutes.js";
 import { initSocket } from "./common/services/socketService.js";
 import { initCronJobs } from "./common/services/cronService.js";
 
@@ -31,6 +33,8 @@ app.use("/api/invoice", invoiceRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/peaktime", peakTimeRouter);
 app.use("/api/complaint", complaintRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/wallet", walletRouter);
 
 const httpServer = createServer(app);
 initSocket(httpServer);
