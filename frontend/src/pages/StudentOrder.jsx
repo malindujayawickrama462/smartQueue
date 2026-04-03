@@ -62,7 +62,7 @@ export default function StudentOrder() {
                         let initialSlot = slots[0];
                         if (pData && (pData.currentStatus === 'Medium' || pData.currentStatus === 'High') && pData.suggestedHour) {
                             const validSlot = slots.find(s => s.startTime >= pData.suggestedHour);
-                            if (validSlot) initialSlot = validSlot;
+                            initialSlot = validSlot ? validSlot : null;
                         }
                         setSelectedSlot(initialSlot);
                     }

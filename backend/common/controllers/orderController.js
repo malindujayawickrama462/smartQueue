@@ -26,9 +26,9 @@ const calculateNextSlot = async (canteenID) => {
     let assignedSlot = null;
 
     while (!foundSlot) {
-        const startTimeStr = slotStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const startTimeStr = slotStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         const slotEnd = new Date(slotStart.getTime() + slotDuration * 60000);
-        const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endTimeStr = slotEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         const dateStr = slotStart.toISOString().split('T')[0];
 
         // Count existing orders in this slot
@@ -75,9 +75,9 @@ export const getAvailableSlots = async (req, res) => {
 
         // Generate the next 48 slots (4 hours ahead) instead of just 1 hour
         for (let i = 0; i < 48; i++) {
-            const startTimeStr = currentSlotStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const startTimeStr = currentSlotStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
             const slotEnd = new Date(currentSlotStart.getTime() + slotDuration * 60000);
-            const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endTimeStr = slotEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
             
             // Stop generating slots after 11:30 PM for testing purposes
             if (currentSlotStart.getHours() >= 23 && currentSlotStart.getMinutes() >= 30) break;
