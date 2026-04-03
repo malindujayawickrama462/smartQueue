@@ -79,8 +79,8 @@ export const getAvailableSlots = async (req, res) => {
             const slotEnd = new Date(currentSlotStart.getTime() + slotDuration * 60000);
             const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             
-            // Stop generating slots after 5 PM (17:00) 
-            if (currentSlotStart.getHours() >= 17) break;
+            // Stop generating slots after 11:30 PM for testing purposes
+            if (currentSlotStart.getHours() >= 23 && currentSlotStart.getMinutes() >= 30) break;
 
             const orderCount = await Order.countDocuments({
                 canteen: canteenID,

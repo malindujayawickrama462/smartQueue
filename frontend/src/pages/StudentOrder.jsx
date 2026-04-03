@@ -60,7 +60,7 @@ export default function StudentOrder() {
                     
                     if (slots.length > 0) {
                         let initialSlot = slots[0];
-                        if (pData && pData.currentStatus === 'Medium' && pData.suggestedHour) {
+                        if (pData && (pData.currentStatus === 'Medium' || pData.currentStatus === 'High') && pData.suggestedHour) {
                             const validSlot = slots.find(s => s.startTime >= pData.suggestedHour);
                             if (validSlot) initialSlot = validSlot;
                         }
@@ -388,11 +388,14 @@ export default function StudentOrder() {
                                                     onChange={(e) => setSelectedSlot(availableSlots.find(s => s._id === e.target.value))}
                                                     className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 text-sm"
                                                 >
-                                                    {availableSlots.map(slot => (
-                                                        <option key={slot._id} value={slot._id}>
-                                                            {slot.startTime} – {slot.endTime}
-                                                        </option>
-                                                    ))}
+                                                    {availableSlots.map(slot => {
+                                                        const isDisabled = peakData && (peakData.currentStatus === 'Medium' || peakData.currentStatus === 'High') && peakData.suggestedHour && slot.startTime < peakData.suggestedHour;
+                                                        return (
+                                                            <option key={slot._id} value={slot._id} disabled={isDisabled}>
+                                                                {slot.startTime} – {slot.endTime} {isDisabled ? '(Unavailable due to High Traffic)' : ''}
+                                                            </option>
+                                                        );
+                                                    })}
                                                 </select>
                                             ) : (
                                                 <p className="text-xs text-red-400">No pickup slots available</p>
