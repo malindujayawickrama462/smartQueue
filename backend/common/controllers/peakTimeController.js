@@ -9,7 +9,7 @@ export const getPeakTimeData = async (req, res) => {
     const orders = await Order.find({ 
         canteen: canteenId,
         "timeSlot.date": today, // Only count orders scheduled for today
-        status: { $in: ['Pending', 'Verified', 'Preparing', 'Ready', 'Late'] } // Only count active traffic
+        status: { $in: ['Pending', 'Verified', 'Preparing', 'Ready', 'Late', 'Completed'] } // Count active and completed traffic
     });
 
     const hourCounts = Array(24).fill(0);
@@ -33,9 +33,13 @@ export const getPeakTimeData = async (req, res) => {
     const currentHour = new Date().getHours();
     const currentStatus = peakStatus[currentHour];
 
-    let suggestedHourIndex = currentHour;
+    let startSearchHour = currentStatus === "High" ? currentHour + 1 : currentHour;
+    if (startSearchHour >= 24) startSearchHour = 23;
+
+    let suggestedHourIndex = startSearchHour;
     let minFutureCount = Infinity;
-    for (let i = currentHour; i < 24; i++) {
+    
+    for (let i = startSearchHour; i < 24; i++) {
       if (peakStatus[i] === "Low") {
         suggestedHourIndex = i;
         break;

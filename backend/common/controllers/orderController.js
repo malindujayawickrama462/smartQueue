@@ -17,8 +17,6 @@ const calculateNextSlot = async (canteenID) => {
     const maxOrders = canteen.maxOrdersPerSlot || 10;
 
     let now = new Date();
-    // Round to nearest slot duration if needed, or just start from now
-    // For simplicity, let's start from the current time rounded up to the next 5-min interval
     let startMinutes = Math.ceil(now.getMinutes() / slotDuration) * slotDuration;
     let slotStart = new Date(now.setMinutes(startMinutes, 0, 0));
 
@@ -26,12 +24,11 @@ const calculateNextSlot = async (canteenID) => {
     let assignedSlot = null;
 
     while (!foundSlot) {
-        const startTimeStr = slotStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const startTimeStr = slotStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         const slotEnd = new Date(slotStart.getTime() + slotDuration * 60000);
-        const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const endTimeStr = slotEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         const dateStr = slotStart.toISOString().split('T')[0];
 
-        // Count existing orders in this slot
         const orderCount = await Order.countDocuments({
             canteen: canteenID,
             "timeSlot.startTime": startTimeStr,
@@ -47,7 +44,6 @@ const calculateNextSlot = async (canteenID) => {
             };
             foundSlot = true;
         } else {
-            // Move to next slot
             slotStart = new Date(slotStart.getTime() + slotDuration * 60000);
         }
     }
@@ -65,20 +61,20 @@ export const getAvailableSlots = async (req, res) => {
 
         const slotDuration = canteen.slotDurationMinutes || 5;
         const maxOrders = canteen.maxOrdersPerSlot || 10;
-        
+
         let now = new Date();
         let startMinutes = Math.ceil(now.getMinutes() / slotDuration) * slotDuration;
         let currentSlotStart = new Date(now.setMinutes(startMinutes, 0, 0));
-        
+
         const availableSlots = [];
         const todayStr = currentSlotStart.toISOString().split('T')[0];
 
         // Generate the next 144 slots (12 hours ahead) to allow orders throughout the day
         for (let i = 0; i < 144; i++) {
-            const startTimeStr = currentSlotStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const startTimeStr = currentSlotStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
             const slotEnd = new Date(currentSlotStart.getTime() + slotDuration * 60000);
-            const endTimeStr = slotEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            
+            const endTimeStr = slotEnd.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
             // Stop generating slots after 11 PM (23:00)
             if (currentSlotStart.getHours() >= 23) break;
 
@@ -91,13 +87,13 @@ export const getAvailableSlots = async (req, res) => {
 
             if (orderCount < maxOrders) {
                 availableSlots.push({
-                    _id: `${startTimeStr}-${todayStr}`, // Add unique ID for slot selection
+                    _id: `${startTimeStr}-${todayStr}`,
                     startTime: startTimeStr,
                     endTime: endTimeStr,
                     date: todayStr
                 });
             }
-            
+
             currentSlotStart = new Date(currentSlotStart.getTime() + slotDuration * 60000);
         }
 
@@ -110,7 +106,7 @@ export const getAvailableSlots = async (req, res) => {
 export const placeOrder = async (req, res) => {
     try {
         const { canteenID, items, totalPrice, paymentMethod, timeSlot, redeemPoints } = req.body;
-        const today = new Date().toISOString().split('T')[0]; // From authenticate middleware
+        const today = new Date().toISOString().split('T')[0];
 
         const user = await User.findById(req.userId);
         if (!user) return res.status(404).json({ message: "User not found" });
@@ -122,14 +118,12 @@ export const placeOrder = async (req, res) => {
             if (user.loyaltyPoints < redeemPoints) {
                 return res.status(400).json({ message: "Insufficient loyalty points" });
             }
-            // 1 point = 1 LKR discount
             const maxRedeemable = Math.min(finalPrice, user.loyaltyPoints);
             const actuallyRedeemed = Math.min(redeemPoints, maxRedeemable);
-            
+
             finalPrice -= actuallyRedeemed;
             user.loyaltyPoints -= actuallyRedeemed;
-            
-            // Log point deduction transaction
+
             const pointsTx = new Transaction({
                 user: req.userId,
                 amount: actuallyRedeemed,
@@ -151,7 +145,7 @@ export const placeOrder = async (req, res) => {
             student: req.userId,
             canteen: canteenID,
             items,
-            totalPrice: finalPrice, // Final price after points
+            totalPrice: finalPrice,
             timeSlot: timeSlot || undefined,
             date: today,
             paymentMethod: ['Card', 'Wallet'].includes(paymentMethod) ? paymentMethod : 'Cash',
@@ -191,20 +185,22 @@ export const createPOSOrder = async (req, res) => {
         const { items, totalPrice, paymentMethod } = req.body;
         const today = new Date().toISOString().split('T')[0];
 
-        // Instead of time slot, it's an immediate Walk-in order
         const timeSlot = {
             startTime: "Walk-in",
             endTime: "Walk-in",
             date: today
         };
 
-        // Generate Daily Walkin POS Token
         const dailyCounterId = `token_count_${today}`;
-        const tokenCounter = await Counter.findOneAndUpdate({ id: dailyCounterId }, { $inc: { seq: 1 } }, { returnDocument: 'after', upsert: true });
+        const tokenCounter = await Counter.findOneAndUpdate(
+            { id: dailyCounterId },
+            { $inc: { seq: 1 } },
+            { returnDocument: 'after', upsert: true }
+        );
         const orderToken = `POS-${tokenCounter.seq.toString().padStart(3, '0')}`;
 
         const newOrder = new Order({
-            student: req.userId, // Using the Staff's ID as the purchaser
+            student: req.userId,
             canteen: canteenID,
             items,
             totalPrice,
@@ -212,8 +208,8 @@ export const createPOSOrder = async (req, res) => {
             date: today,
             orderToken,
             paymentMethod: paymentMethod || 'Cash',
-            paymentStatus: 'Paid',   // Instantly marked Paid since staff took cash
-            status: "Completed"      // Instantly marked Complete for walk-in
+            paymentStatus: 'Paid',
+            status: "Completed"
         });
 
         await newOrder.save();
@@ -229,21 +225,18 @@ export const getStudentOrders = async (req, res) => {
         const orders = await Order.find({ student: studentID })
             .populate('canteen', 'name location slotDurationMinutes maxOrdersPerSlot')
             .sort({ createdAt: -1 });
-            
-        // Calculate dynamic wait time for active orders (lite version)
+
         const enrichedOrders = await Promise.all(orders.map(async (o) => {
             const orderObj = o.toObject();
             if (['Pending', 'Verified', 'Preparing'].includes(o.status)) {
-                // Find how many orders in the same status or earlier are ahead of this one (older createdAt)
                 const queueAhead = await Order.countDocuments({
                     canteen: o.canteen._id,
                     status: { $in: ['Verified', 'Preparing'] },
                     createdAt: { $lt: o.createdAt }
                 });
-                
+
                 orderObj.queuePosition = queueAhead + 1;
-                // Rough estimate: 2 mins per order ahead + 5 mins baseline
-                orderObj.estimatedWaitTime = (queueAhead * 2) + 5; 
+                orderObj.estimatedWaitTime = (queueAhead * 2) + 5;
             } else if (o.status === 'Ready') {
                 orderObj.estimatedWaitTime = 0;
                 orderObj.queuePosition = 0;
@@ -264,7 +257,6 @@ export const getCanteenOrders = async (req, res) => {
         const today = now.toISOString().split('T')[0];
         const currentTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
-        // Auto-update late orders
         await Order.updateMany(
             {
                 canteen: canteenID,
@@ -305,7 +297,6 @@ export const updateOrderStatus = async (req, res) => {
             return res.status(404).json({ message: "Order not found" });
         }
 
-        // Handle both 'Requested' (legacy) and 'Pending' (new) states
         if (['Requested', 'Pending'].includes(existingOrder.status) && status === 'Verified') {
             if (!existingOrder.timeSlot || !existingOrder.timeSlot.startTime) {
                 const nextSlot = await calculateNextSlot(existingOrder.canteen);
@@ -314,25 +305,23 @@ export const updateOrderStatus = async (req, res) => {
                 updateData.timeSlot = existingOrder.timeSlot;
             }
 
-            // --- SMART TOKEN GENERATION ---
             const todayStr = new Date().toISOString().split('T')[0];
             const tokenCounter = await Counter.findOneAndUpdate(
                 { id: `token_count_${todayStr}` },
                 { $inc: { seq: 1 } },
                 { returnDocument: 'after', upsert: true }
             );
-            
+
             const assignedSlot = updateData.timeSlot?.startTime || existingOrder.timeSlot?.startTime || '00:00';
             const timeCode = assignedSlot.replace(':', '');
             const seqStr = tokenCounter.seq.toString().padStart(3, '0');
             updateData.orderToken = `SQ-${seqStr}-${timeCode}`;
         }
-        
-        // --- REAL TIME NOTIFICATIONS ---
+
         if (updateData.orderToken) {
             try {
                 const message = `Order Accepted! Your Token Number is ${updateData.orderToken}.`;
-                
+
                 await Notification.create({
                     recipient: existingOrder.student,
                     message,
@@ -353,7 +342,7 @@ export const updateOrderStatus = async (req, res) => {
         if (status === 'Ready' && existingOrder.status !== 'Ready') {
             try {
                 const message = "Your order is ready to collect at the counter!";
-                
+
                 await Notification.create({
                     recipient: existingOrder.student,
                     message,
@@ -396,7 +385,7 @@ export const getCanteenHistory = async (req, res) => {
         })
             .populate('student', 'name email')
             .sort({ updatedAt: -1 })
-            .limit(100); // Last 100 for safety
+            .limit(100);
 
         res.status(200).json({ orders });
     } catch (error) {
@@ -407,7 +396,7 @@ export const getCanteenHistory = async (req, res) => {
 export const getCanteenAnalytics = async (req, res) => {
     try {
         const { canteenID } = req.params;
-        // Basic stats aggregation
+
         const stats = await Order.aggregate([
             { $match: { canteen: new mongoose.Types.ObjectId(canteenID), status: 'Completed' } },
             {
@@ -419,7 +408,6 @@ export const getCanteenAnalytics = async (req, res) => {
             }
         ]);
 
-        // Top Items aggregation
         const topItems = await Order.aggregate([
             { $match: { canteen: new mongoose.Types.ObjectId(canteenID), status: 'Completed' } },
             { $unwind: "$items" },
@@ -450,7 +438,6 @@ export const getOrderById = async (req, res) => {
         const order = await Order.findById(orderID);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
-        // Return order, we could add stricter auth checks here if needed
         res.status(200).json({ order });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -469,12 +456,8 @@ export const getGlobalAnalytics = async (req, res) => {
 
         if (startDate || endDate) {
             matchStage.createdAt = {};
-            if (startDate) {
-                matchStage.createdAt.$gte = new Date(startDate);
-            }
-            if (endDate) {
-                matchStage.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
-            }
+            if (startDate) matchStage.createdAt.$gte = new Date(startDate);
+            if (endDate) matchStage.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
         }
 
         const stats = await Order.aggregate([
@@ -517,7 +500,7 @@ export const generateAdminReport = async (req, res) => {
         const { startDate, endDate, canteenID, reportType } = req.query;
 
         let matchStage = { status: 'Completed' };
-        
+
         if (reportType === 'late_orders') {
             matchStage.status = 'Late';
         }
@@ -549,18 +532,26 @@ export const generateAdminReport = async (req, res) => {
                 reportData = await Order.aggregate([
                     { $match: matchStage },
                     { $unwind: "$items" },
-                    { $group: { _id: "$items.name", totalSold: { $sum: "$items.quantity" }, revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } } } },
+                    {
+                        $group: {
+                            _id: "$items.name",
+                            totalSold: { $sum: "$items.quantity" },
+                            revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
+                        }
+                    },
                     { $sort: { totalSold: -1 } }
                 ]);
                 break;
             case 'sales':
                 const sales = await Order.aggregate([
                     { $match: matchStage },
-                    { $group: { 
-                        _id: "$paymentMethod", 
-                        revenue: { $sum: "$totalPrice" }, 
-                        orders: { $sum: 1 } 
-                    }}
+                    {
+                        $group: {
+                            _id: "$paymentMethod",
+                            revenue: { $sum: "$totalPrice" },
+                            orders: { $sum: 1 }
+                        }
+                    }
                 ]);
                 const totalRev = await Order.aggregate([
                     { $match: matchStage },
@@ -573,9 +564,9 @@ export const generateAdminReport = async (req, res) => {
                 break;
             case 'kitchen':
                 let kitchenMatch = { ...matchStage };
-                delete kitchenMatch.status; 
+                delete kitchenMatch.status;
                 kitchenMatch.status = { $in: ['Completed', 'Late', 'Preparing', 'Ready'] };
-                
+
                 reportData = await Order.aggregate([
                     { $match: kitchenMatch },
                     { $group: { _id: "$status", count: { $sum: 1 } } }
@@ -604,12 +595,11 @@ export const generateAdminReport = async (req, res) => {
 
 // ===== QUEUE & STATUS TRACKING ENDPOINTS =====
 
-// Helper: Create or update queue entry
 const updateQueueEntry = async (orderId, canteenId, status) => {
     try {
         const queueEntry = await Queue.findOneAndUpdate(
             { order: orderId },
-            { 
+            {
                 status,
                 actualStartTime: status === 'Cooking' ? new Date() : undefined,
                 actualEndTime: status === 'Ready' ? new Date() : undefined
@@ -622,92 +612,74 @@ const updateQueueEntry = async (orderId, canteenId, status) => {
     }
 };
 
-// Helper: Calculate queue position (FCFS based on creation time)
 const calculateQueuePosition = async (canteenId, status) => {
-    const count = await Queue.countDocuments({
-        canteen: canteenId,
-        status
-    });
+    const count = await Queue.countDocuments({ canteen: canteenId, status });
     return count + 1;
 };
 
-// Get FCFS Queue - All Verified Orders
 export const getQueueFCFS = async (req, res) => {
     try {
         const { canteenID } = req.params;
 
-        const queue = await Order.find({
-            canteen: canteenID,
-            status: 'Verified'
-        })
+        const queue = await Order.find({ canteen: canteenID, status: 'Verified' })
             .populate('student', 'name userID')
             .sort({ createdAt: 1 })
             .select('orderID orderToken items totalPrice timeSlot student createdAt');
 
-        // Add queue positions
         const queueWithPositions = queue.map((order, index) => ({
             ...order.toObject(),
             queuePosition: index + 1,
-            estimatedWaitTime: `${(index + 1) * 5} minutes` // Estimate 5 min per order
+            estimatedWaitTime: `${(index + 1) * 5} minutes`
         }));
 
-        res.status(200).json({ 
+        res.status(200).json({
             canteenID,
             totalInQueue: queue.length,
-            queue: queueWithPositions 
+            queue: queueWithPositions
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Get All Cooking/Preparing Orders
 export const getCookingOrders = async (req, res) => {
     try {
         const { canteenID } = req.params;
 
-        const cookingOrders = await Order.find({
-            canteen: canteenID,
-            status: 'Preparing'
-        })
+        const cookingOrders = await Order.find({ canteen: canteenID, status: 'Preparing' })
             .populate('student', 'name userID')
             .sort({ updatedAt: 1 })
             .select('orderID orderToken items totalPrice student updatedAt');
 
-        res.status(200).json({ 
+        res.status(200).json({
             canteenID,
             totalCooking: cookingOrders.length,
-            orders: cookingOrders 
+            orders: cookingOrders
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Get All Ready Orders
 export const getReadyOrders = async (req, res) => {
     try {
         const { canteenID } = req.params;
 
-        const readyOrders = await Order.find({
-            canteen: canteenID,
-            status: 'Ready'
-        })
+        const readyOrders = await Order.find({ canteen: canteenID, status: 'Ready' })
             .populate('student', 'name userID')
             .sort({ updatedAt: 1 })
             .select('orderID orderToken items student updatedAt');
 
-        res.status(200).json({ 
+        res.status(200).json({
             canteenID,
             totalReady: readyOrders.length,
-            orders: readyOrders 
+            orders: readyOrders
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Get All Delivered/Completed Orders
 export const getDeliveredOrders = async (req, res) => {
     try {
         const { canteenID } = req.params;
@@ -722,17 +694,16 @@ export const getDeliveredOrders = async (req, res) => {
             .sort({ updatedAt: -1 })
             .select('orderID orderToken items totalPrice student updatedAt');
 
-        res.status(200).json({ 
+        res.status(200).json({
             canteenID,
             totalDelivered: deliveredOrders.length,
-            orders: deliveredOrders 
+            orders: deliveredOrders
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Get All Order Status Summary (Dashboard View)
 export const getOrderStatusSummary = async (req, res) => {
     try {
         const { canteenID } = req.params;
@@ -759,7 +730,6 @@ export const getOrderStatusSummary = async (req, res) => {
     }
 };
 
-// Move Order to Cooking (Start Cooking)
 export const startCooking = async (req, res) => {
     try {
         const { orderID } = req.params;
@@ -774,7 +744,6 @@ export const startCooking = async (req, res) => {
             return res.status(404).json({ message: "Order not found" });
         }
 
-        // Emit socket event
         try {
             const io = getIO();
             io.emit("order-cooking", {
@@ -792,7 +761,6 @@ export const startCooking = async (req, res) => {
     }
 };
 
-// All Orders by Status Detailed View
 export const getAllOrdersByStatus = async (req, res) => {
     try {
         const { canteenID } = req.params;
