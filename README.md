@@ -1,4 +1,4 @@
-# SmartQueue - Disaster Relief Platform
+# SmartQueue - Smart canteen and queue management system
 
 A full-stack application for disaster relief management with separate backend and frontend folders.
 
