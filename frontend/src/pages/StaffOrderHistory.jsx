@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getCanteenHistory } from '../api/staffApi';
+import { downloadInvoice } from '../api/invoiceApi';
 
 export default function StaffOrderHistory() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [downloadingId, setDownloadingId] = useState(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -27,6 +29,28 @@ export default function StaffOrderHistory() {
         fetchHistory();
     }, []);
 
+    const handleDownloadInvoice = async (orderId, orderID) => {
+        setDownloadingId(orderId);
+        try {
+            // Fetch or generate invoice for this order
+            const res = await fetch(`/api/invoice/by-order/${orderId}`, {
+                headers: { "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}` }
+            });
+            if (!res.ok) throw new Error("Could not fetch or generate invoice");
+            const invoiceData = await res.json();
+            
+            if (!invoiceData.invoice) {
+                throw new Error("Invoice not found or could not be generated");
+            }
+            
+            await downloadInvoice(invoiceData.invoice._id, invoiceData.invoice.invoiceID);
+        } catch (err) {
+            alert(err.message || 'Failed to download invoice');
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
     if (loading) return <div className="h-full flex items-center justify-center text-slate-400">Loading History...</div>;
 
     if (error) return (
@@ -36,7 +60,7 @@ export default function StaffOrderHistory() {
     );
 
     return (
-        <div className="p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+        <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
             <div>
                 <h1 className="text-3xl font-black tracking-tight text-slate-100">Order History</h1>
                 <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mt-1">Audit log of processing</p>
@@ -53,12 +77,13 @@ export default function StaffOrderHistory() {
                                 <th className="px-6 py-4">Items</th>
                                 <th className="px-6 py-4 text-right">Payment</th>
                                 <th className="px-6 py-4 text-center">Status</th>
+                                <th className="px-6 py-4 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
                             {orders.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500 font-medium">
+                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-500 font-medium">
                                         No historical orders found.
                                     </td>
                                 </tr>
@@ -90,6 +115,16 @@ export default function StaffOrderHistory() {
                                                 }`}>
                                                 {order.status}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <button
+                                                onClick={() => handleDownloadInvoice(order._id, order.orderID)}
+                                                disabled={downloadingId === order._id}
+                                                className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-500 hover:text-white transition text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                                title="Download invoice for this order"
+                                            >
+                                                {downloadingId === order._id ? '⏳' : '📥'}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))

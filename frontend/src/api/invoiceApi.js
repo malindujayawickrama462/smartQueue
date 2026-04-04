@@ -39,3 +39,37 @@ export const getUserInvoices = async () => {
     }
     return res.json();
 };
+
+export const downloadInvoice = async (invoiceId, invoiceNumber) => {
+    try {
+        const res = await fetch(`${API_URL}/download/${invoiceId}`, {
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("smartqueue_token")}`
+            }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || "Failed to download invoice");
+        }
+        
+        // Get the blob from response
+        const blob = await res.blob();
+        
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a link element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Invoice_${invoiceNumber}.html`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        throw new Error(error.message || "Failed to download invoice");
+    }
+};
