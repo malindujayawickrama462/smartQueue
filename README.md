@@ -77,3 +77,6 @@ ISC
 ## 🔗 Repository
 
 [SahanaNet on GitHub](https://github.com/malindujayawickrama462/SahanaNet)
+
+Regno:IT23204652
+Thisanga R A S
