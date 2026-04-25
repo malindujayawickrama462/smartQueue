@@ -9,6 +9,7 @@ export default function StudentSidebar() {
     const links = [
         { path: "/home", label: "Dashboard", icon: "🏠" },
         { path: "/canteens", label: "Browse Canteens", icon: "🍔" },
+        { path: "/cart", label: "My Cart", icon: "🛒" },
         { path: "/invoices", label: "Order History", icon: "📜" },
         { path: "/complaints", label: "My Complaints", icon: "🚨" },
         { path: "/profile", label: "My Profile", icon: "👤" },

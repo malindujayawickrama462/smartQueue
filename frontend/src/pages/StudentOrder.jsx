@@ -6,6 +6,8 @@ import { placeOrder, getAvailableSlots } from '../api/orderApi';
 import { generateInvoice } from '../api/invoiceApi';
 import { getAllFoodItemsWithImages } from '../api/foodApi';
 import { getPeakTimeData } from '../api/peakTimeApi';
+import { addToCart as saveItemToCart } from '../api/cartApi';
+import { getWalletInfo } from '../api/walletApi';
 import { useAuth } from '../auth/AuthContext';
 import PeakTimeIndicator from '../components/PeakTimeIndicator';
 
@@ -24,6 +26,9 @@ export default function StudentOrder() {
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [peakData, setPeakData] = useState(null);
     const [peakLoading, setPeakLoading] = useState(true);
+    const [cartSaving, setCartSaving] = useState(false);
+    const [cartSaveToast, setCartSaveToast] = useState(null);
+    const [walletBalance, setWalletBalance] = useState(null);
 
     useEffect(() => {
         const fetchMenuAndSlots = async () => {
@@ -112,6 +117,28 @@ export default function StudentOrder() {
         setCart(prev => prev.filter(i => i._id !== itemId));
     };
 
+    const updateQuantity = (itemId, delta) => {
+        setCart(prev => prev.map(i =>
+            i._id === itemId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i
+        ).filter(i => i.quantity > 0));
+    };
+
+    const saveCartToServer = async () => {
+        if (cart.length === 0) return;
+        setCartSaving(true);
+        try {
+            for (const item of cart) {
+                await saveItemToCart({ canteenId: canteenId, foodItemId: item._id, quantity: item.quantity });
+            }
+            setCartSaveToast({ type: 'success', msg: 'Cart saved! View it anytime from My Cart.' });
+        } catch (err) {
+            setCartSaveToast({ type: 'error', msg: err.message || 'Failed to save cart.' });
+        } finally {
+            setCartSaving(false);
+            setTimeout(() => setCartSaveToast(null), 4000);
+        }
+    };
+
     const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     const processOrderPlacement = async (paymentMethod, transactionId = null) => {
@@ -153,6 +180,8 @@ export default function StudentOrder() {
         }
         if (method === 'Card') {
             setShowCheckout(true);
+        } else if (method === 'Wallet') {
+            processOrderPlacement('Wallet');
         } else {
             processOrderPlacement('Cash');
         }
@@ -318,12 +347,12 @@ export default function StudentOrder() {
                                                     <p className="text-sm font-bold text-slate-200">{item.name}</p>
                                                     <p className="text-xs text-slate-400">Rs. {item.price} × {item.quantity}</p>
                                                 </div>
-                                                <button
-                                                    onClick={() => removeFromCart(item._id)}
-                                                    className="text-red-400 hover:text-red-300 transition text-lg"
-                                                >
-                                                    ✕
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={() => updateQuantity(item._id, -1)} className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm flex items-center justify-center transition">−</button>
+                                                    <span className="text-sm font-bold text-slate-200 w-5 text-center">{item.quantity}</span>
+                                                    <button onClick={() => updateQuantity(item._id, 1)} className="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm flex items-center justify-center transition">+</button>
+                                                    <button onClick={() => removeFromCart(item._id)} className="text-red-400 hover:text-red-300 transition text-lg ml-1">✕</button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -362,21 +391,46 @@ export default function StudentOrder() {
 
                                     {error && <p className="text-sm text-red-400 bg-red-400/10 p-2 rounded-lg">{error}</p>}
 
-                                    <div className="flex gap-2 pt-2">
-                                        <button
-                                            onClick={() => handleCheckoutDecision('Cash')}
-                                            disabled={loading}
-                                            className="flex-1 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500 hover:text-slate-950 transition font-bold text-sm disabled:opacity-50"
-                                        >
-                                            💵 Cash
-                                        </button>
-                                        <button
-                                            onClick={() => handleCheckoutDecision('Card')}
-                                            disabled={loading}
-                                            className="flex-1 py-2 px-3 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500 hover:text-slate-950 transition font-bold text-sm disabled:opacity-50"
-                                        >
-                                            💳 Card
-                                        </button>
+                                    {/* Save to Cart (server-side persistence) */}
+                                    {cartSaveToast && (
+                                        <div className={`text-xs p-2 rounded-lg ${cartSaveToast.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                            {cartSaveToast.type === 'success' ? '✅' : '⚠️'} {cartSaveToast.msg}
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={saveCartToServer}
+                                        disabled={cartSaving || cart.length === 0}
+                                        className="w-full py-2 px-3 rounded-lg bg-slate-700/60 text-slate-300 border border-slate-600 hover:bg-slate-700 hover:text-white transition font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {cartSaving ? <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : '🛒'}
+                                        {cartSaving ? 'Saving…' : 'Save Cart for Later'}
+                                    </button>
+
+                                    <div className="space-y-1 pt-1">
+                                        <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Pay with</p>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            <button
+                                                onClick={async () => { try { const w = await getWalletInfo(); setWalletBalance(w.walletBalance); } catch(e){} handleCheckoutDecision('Wallet'); }}
+                                                disabled={loading}
+                                                className="py-2 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-slate-950 transition font-bold text-xs disabled:opacity-50"
+                                            >
+                                                👛 Wallet
+                                            </button>
+                                            <button
+                                                onClick={() => handleCheckoutDecision('Cash')}
+                                                disabled={loading}
+                                                className="py-2 px-2 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500 hover:text-slate-950 transition font-bold text-xs disabled:opacity-50"
+                                            >
+                                                💵 Cash
+                                            </button>
+                                            <button
+                                                onClick={() => handleCheckoutDecision('Card')}
+                                                disabled={loading}
+                                                className="py-2 px-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500 hover:text-slate-950 transition font-bold text-xs disabled:opacity-50"
+                                            >
+                                                💳 Card
+                                            </button>
+                                        </div>
                                     </div>
                                 </>
                             ) : (
@@ -396,7 +450,7 @@ export default function StudentOrder() {
                 </div>
             </div>
 
-            {showCheckout && <CheckoutModal onClose={() => setShowCheckout(false)} cart={cart} totalPrice={totalPrice} onPaymentSuccess={(transactionId) => processOrderPlacement('Card', transactionId)} />}
+            {showCheckout && <CheckoutModal amount={totalPrice} onCancel={() => setShowCheckout(false)} onSuccess={(transactionId) => processOrderPlacement('Card', transactionId)} />}
         </div>
     );
 }

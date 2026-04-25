@@ -22,6 +22,7 @@ import StaffAnalytics from './pages/StaffAnalytics';
 import StaffOrderHistory from './pages/StaffOrderHistory';
 import StaffPOS from './pages/StaffPOS';
 import Wallet from './pages/Wallet';
+import Cart from './pages/Cart';
 import { RequireAdmin, RequireAuth } from './routes/Guards';
 
 export default function App() {
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/invoices" element={<UserInvoices />} />
           <Route path="/complaints" element={<Complaints />} />
           <Route path="/wallet" element={<Wallet />} />
+          <Route path="/cart" element={<Cart />} />
         </Route>
 
         {/* Staff Routes inside Sidebar Layout */}
